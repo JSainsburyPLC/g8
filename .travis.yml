@@ -1,0 +1,19 @@
+language: go
+
+go:
+  - "1.13"
+
+before_install:
+  - go get -u -v github.com/axw/gocov/gocov
+  - go get -u -v github.com/mattn/goveralls
+
+script:
+  - diff -u <(echo -n) <(gofmt -s -d ./)
+  - diff -u <(echo -n) <(go vet ./...)
+  - make test
+
+after_success:
+  - goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+
+env:
+  - GO111MODULE=on

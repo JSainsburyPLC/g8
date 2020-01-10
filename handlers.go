@@ -9,41 +9,65 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/google/uuid"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/_integrations/nrlambda"
 	"github.com/rs/zerolog"
 )
 
 type HandlerConfig struct {
-	Logger      zerolog.Logger
-	NewRelicApp newrelic.Application
+	AppName      string
+	FunctionName string
+	EnvName      string
+	BuildVersion string
+	Logger       zerolog.Logger
+	NewRelicApp  newrelic.Application
 }
 
 type APIGatewayProxyContext struct {
-	Context    context.Context
-	Request    events.APIGatewayProxyRequest
-	Response   events.APIGatewayProxyResponse
-	Logger     zerolog.Logger
-	NewRelicTx newrelic.Transaction
+	Context       context.Context
+	Request       events.APIGatewayProxyRequest
+	Response      events.APIGatewayProxyResponse
+	Logger        zerolog.Logger
+	NewRelicTx    newrelic.Transaction
+	CorrelationID string
 }
 
 type APIGatewayProxyHandlerFunc func(c *APIGatewayProxyContext) error
+
+const (
+	headerBuildVersion  = "Build-Version"
+	headerCorrelationID = "Correlation-Id"
+)
 
 func APIGatewayProxyHandler(
 	h APIGatewayProxyHandlerFunc,
 	conf HandlerConfig,
 ) func(context.Context, events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		correlationID := getCorrelationID(r)
+
 		logger := conf.Logger.With().
-			Str("ContextKey", "ContextValue"). // TODO: log context values
+			Str("application", conf.AppName).
+			Str("function_name", conf.FunctionName).
+			Str("env", conf.EnvName).
+			Str("build_version", conf.BuildVersion).
+			Str("correlation_id", correlationID).
 			Logger()
 
 		c := &APIGatewayProxyContext{
-			Context:    ctx,
-			Request:    r,
-			Logger:     logger,
-			NewRelicTx: newrelic.FromContext(ctx),
+			Context:       ctx,
+			Request:       r,
+			Logger:        logger,
+			NewRelicTx:    newrelic.FromContext(ctx),
+			CorrelationID: correlationID,
 		}
+
+		if c.Response.Headers == nil {
+			c.Response.Headers = make(map[string]string)
+		}
+		c.Response.Headers[headerCorrelationID] = correlationID
+		c.Response.Headers[headerBuildVersion] = conf.BuildVersion
 
 		err := h(c)
 		if err != nil {
@@ -127,4 +151,12 @@ var ErrInvalidBody = Err{
 	Status: http.StatusBadRequest,
 	Code:   "INVALID_REQUEST_BODY",
 	Detail: "Invalid request body",
+}
+
+func getCorrelationID(r events.APIGatewayProxyRequest) string {
+	correlationID := r.Headers[headerCorrelationID]
+	if correlationID != "" {
+		return correlationID
+	}
+	return uuid.New().String()
 }

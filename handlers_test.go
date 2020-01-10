@@ -2,15 +2,17 @@ package g8_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
-	"github.com/rs/zerolog"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/JSainsburyPLC/g8"
+
 	"github.com/aws/aws-lambda-go/events"
 	adapter "github.com/gaw508/lambda-proxy-http-adapter"
+	"github.com/rs/zerolog"
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/assert"
 )
@@ -130,13 +132,18 @@ func TestAPIGatewayProxyHandler_SuccessResponse(t *testing.T) {
 			return err
 		}
 
+		c.Logger.Info().Msg("testing logger")
+
 		return c.JSON(http.StatusOK, map[string]string{
 			"one":   "two",
 			"three": "four",
 		})
 	}
 
-	lh := g8.APIGatewayProxyHandler(h, g8.HandlerConfig{})
+	logBuf := &bytes.Buffer{}
+	lh := g8.APIGatewayProxyHandler(h, g8.HandlerConfig{
+		Logger: zerolog.New(logBuf),
+	})
 
 	apitest.New().
 		Handler(adapter.GetHttpHandlerWithContext(lh, "/", nil)).
@@ -151,7 +158,10 @@ func TestAPIGatewayProxyHandler_SuccessResponse(t *testing.T) {
 					"one": "two",
 					"three": "four"
 				}`).
+		HeaderPresent("Correlation-Id").
 		End()
+
+	assert.True(t, containsLogMessage(logBuf.String(), "testing logger"))
 }
 
 func TestAPIGatewayProxyHandler_G8ErrorResponse(t *testing.T) {
@@ -174,6 +184,7 @@ func TestAPIGatewayProxyHandler_G8ErrorResponse(t *testing.T) {
 					"code": "UNAUTHORIZED",
 					"detail": "Unauthorized"
 				}`).
+		HeaderPresent("Correlation-Id").
 		End()
 }
 
@@ -196,13 +207,10 @@ func TestAPIGatewayProxyHandler_UnhandledErrorResponse(t *testing.T) {
 					"code": "INTERNAL_SERVER_ERROR",
 					"detail": "Internal server error"
 				}`).
+		HeaderPresent("Correlation-Id").
 		End()
 
-	assert.Equal(
-		t,
-		`{"level":"error","ContextKey":"ContextValue","message":"Unhandled error: some error"}`,
-		strings.TrimSpace(logBuf.String()),
-	)
+	assert.True(t, containsLogMessage(logBuf.String(), "Unhandled error: some error"))
 }
 
 func TestError_Error(t *testing.T) {
@@ -215,4 +223,23 @@ func TestError_Error(t *testing.T) {
 	if err.Error() != "Code: INVALID_QUERY_PARAM; Status: 400; Detail: Invalid query param" {
 		t.Fatalf("unexpected error: '%s'", err.Error())
 	}
+}
+
+func containsLogMessage(fullLog string, message string) bool {
+	type log struct {
+		Message string `json:"message"`
+	}
+
+	lines := strings.Split(fullLog, "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		var parsedLine log
+		_ = json.Unmarshal([]byte(line), &parsedLine)
+		if parsedLine.Message == message {
+			return true
+		}
+	}
+	return false
 }

@@ -53,6 +53,7 @@ func APIGatewayProxyHandler(
 			Str("env", conf.EnvName).
 			Str("build_version", conf.BuildVersion).
 			Str("correlation_id", correlationID).
+			Str("route", r.RequestContext.ResourcePath).
 			Logger()
 
 		c := &APIGatewayProxyContext{
@@ -68,6 +69,11 @@ func APIGatewayProxyHandler(
 		}
 		c.Response.Headers[headerCorrelationID] = correlationID
 		c.Response.Headers[headerBuildVersion] = conf.BuildVersion
+
+		c.AddNewRelicAttribute("functionName", conf.FunctionName)
+		c.AddNewRelicAttribute("route", r.RequestContext.ResourcePath)
+		c.AddNewRelicAttribute("correlationID", correlationID)
+		c.AddNewRelicAttribute("buildVersion", conf.BuildVersion)
 
 		err := h(c)
 		if err != nil {
@@ -110,6 +116,15 @@ func (c *APIGatewayProxyContext) JSON(statusCode int, body interface{}) error {
 	c.Response.StatusCode = statusCode
 	c.Response.Body = string(b)
 	return nil
+}
+
+func (c *APIGatewayProxyContext) AddNewRelicAttribute(key string, val interface{}) {
+	if c.NewRelicTx == nil {
+		return
+	}
+	if err := c.NewRelicTx.AddAttribute(key, val); err != nil {
+		c.Logger.Error().Msgf("failed to add attr '%s' to new relic tx: %+v", key, err)
+	}
 }
 
 func (c *APIGatewayProxyContext) handleError(err error) {

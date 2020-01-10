@@ -1,6 +1,7 @@
 package g8
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,6 +20,7 @@ type HandlerConfig struct {
 }
 
 type APIGatewayProxyContext struct {
+	Context    context.Context
 	Request    events.APIGatewayProxyRequest
 	Response   events.APIGatewayProxyResponse
 	Logger     zerolog.Logger
@@ -27,18 +29,20 @@ type APIGatewayProxyContext struct {
 
 type APIGatewayProxyHandlerFunc func(c *APIGatewayProxyContext) error
 
-func APIGatewayProxyHandler(h APIGatewayProxyHandlerFunc, conf HandlerConfig) lambda.Handler {
-	return nrlambda.Wrap(func(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func APIGatewayProxyHandler(
+	h APIGatewayProxyHandlerFunc,
+	conf HandlerConfig,
+) func(context.Context, events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	return func(ctx context.Context, r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		logger := conf.Logger.With().
 			Str("ContextKey", "ContextValue"). // TODO: log context values
 			Logger()
 
 		c := &APIGatewayProxyContext{
+			Context:    ctx,
 			Request:    r,
 			Logger:     logger,
-
-			// TODO: Need to figure out how to get tx. Doesn't seem to be an easy way to do this.
-			//NewRelicTx: "",
+			NewRelicTx: newrelic.FromContext(ctx),
 		}
 
 		err := h(c)
@@ -48,7 +52,11 @@ func APIGatewayProxyHandler(h APIGatewayProxyHandlerFunc, conf HandlerConfig) la
 		}
 
 		return c.Response, nil
-	}, conf.NewRelicApp)
+	}
+}
+
+func APIGatewayProxyHandlerWithNewRelic(h APIGatewayProxyHandlerFunc, conf HandlerConfig) lambda.Handler {
+	return nrlambda.Wrap(APIGatewayProxyHandler(h, conf), conf.NewRelicApp)
 }
 
 func (c *APIGatewayProxyContext) Bind(v interface{}) error {

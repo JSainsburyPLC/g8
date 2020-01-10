@@ -2,6 +2,7 @@
 
 Provides the following utilities to simplify working with AWS lambda and Api Gateway.
 
+* Simple handler interface
 * HTTP request parsing with JSON support and request body validation
 * HTTP response writer with JSON support
 * Custom error type with JSON support
@@ -15,11 +16,16 @@ type requestBody struct {
 	Name   string `json:"name"`
 }
 
-handler := func(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+handler := func(c *g8.APIGatewayProxyContext) error {
 	var b requestBody
-	err := g8.Bind(r.Body, &b)
+	err := c.Bind(&b)
+	if err != nil {
+		return err
+	}
 
 	...
+
+	c.JSON(http.StatusOK, responseBody)
 }
 ```
 
@@ -40,56 +46,60 @@ func (b body) Validate() error {
 	return nil
 }
 
-handler := func(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+handler := func(c *g8.APIGatewayProxyContext) error {
 	var b requestBody
-	err := g8.Bind(r.Body, &b)
+	err := c.Bind(&b)
+	if err != nil {
+		// validation error would be returned here
+		return err
+	}
 	
-	// work with requestBody.Name or err.Code == "status empty"
+	...
 	
-	return g8.JSON(http.StatusOK, responseBody)
+	c.JSON(http.StatusOK, responseBody)
 }
 ```
 
-## Response writer
+## Response writing
 
 There are several methods provided to simplify writing HTTP responses. 
 
 ```go
-handler := func(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+handler := func(c *g8.APIGatewayProxyContext) error {
 	...
-	g8.JSON(http.StatusOK, responseBody)
+	c.JSON(http.StatusOK, responseBody)
 }
 ```
-
-`g8.OK(responseBody)` sets the HTTP status code to `http.StatusOK` and marshals `responseBody` as JSON.
 
 ## Errors
 
 ### Go Errors
 
-Passing Go errors to the error response writer will log the error and respond with an internal server error
+Returning Go errors to the error response writer will log the error and respond with an internal server error
 
 ```go
-handler := func(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return g8.Error(errors.New("something went wrong"))
+handler := func(c *g8.APIGatewayProxyContext) error {
+	...
+	return errors.New("something went wrong")
 }
 ```
 
 ### Custom Errors
 
-You can pass custom `g8` errors and also map them to HTTP status codes
+You can return custom `g8` errors and also map them to HTTP status codes
 
 ```go
-handler := func(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return g8.Error(g8.Err{
+handler := func(c *g8.APIGatewayProxyContext) error {
+	...
+	return g8.Err{
 		Status: http.StatusBadRequest,
 		Code:   "SOME_CLIENT_ERROR",
 		Detail: "Invalid param",
-	})
+	}
 }
 ```
 
-Writes the the following response
+Writes the the following response, with status code 400
 
 ```json
 {

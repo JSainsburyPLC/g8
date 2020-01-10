@@ -1,30 +1,107 @@
 package g8
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/_integrations/nrlambda"
+	"github.com/rs/zerolog"
 )
 
-type APIGatewayProxyHandler = func(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)
+type HandlerConfig struct {
+	Logger      zerolog.Logger
+	NewRelicApp newrelic.Application
+}
+
+type APIGatewayProxyContext struct {
+	Context    context.Context
+	Request    events.APIGatewayProxyRequest
+	Response   events.APIGatewayProxyResponse
+	Logger     zerolog.Logger
+	NewRelicTx newrelic.Transaction
+}
+
+type APIGatewayProxyHandlerFunc func(c *APIGatewayProxyContext) error
+
+func APIGatewayProxyHandler(
+	h APIGatewayProxyHandlerFunc,
+	conf HandlerConfig,
+) func(context.Context, events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	return func(ctx context.Context, r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		logger := conf.Logger.With().
+			Str("ContextKey", "ContextValue"). // TODO: log context values
+			Logger()
+
+		c := &APIGatewayProxyContext{
+			Context:    ctx,
+			Request:    r,
+			Logger:     logger,
+			NewRelicTx: newrelic.FromContext(ctx),
+		}
+
+		err := h(c)
+		if err != nil {
+			c.handleError(err)
+			return c.Response, nil
+		}
+
+		return c.Response, nil
+	}
+}
+
+func APIGatewayProxyHandlerWithNewRelic(h APIGatewayProxyHandlerFunc, conf HandlerConfig) lambda.Handler {
+	return nrlambda.Wrap(APIGatewayProxyHandler(h, conf), conf.NewRelicApp)
+}
+
+func (c *APIGatewayProxyContext) Bind(v interface{}) error {
+	if err := json.Unmarshal([]byte(c.Request.Body), v); err != nil {
+		return ErrInvalidBody
+	}
+
+	if validatable, ok := v.(Validatable); ok {
+		err := validatable.Validate()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *APIGatewayProxyContext) JSON(statusCode int, body interface{}) error {
+	var b []byte
+	var err error
+	if body != nil {
+		b, err = json.Marshal(body)
+		if err != nil {
+			return err
+		}
+	}
+	c.Response.StatusCode = statusCode
+	c.Response.Body = string(b)
+	return nil
+}
+
+func (c *APIGatewayProxyContext) handleError(err error) {
+	var newErr Err
+	switch err := err.(type) {
+	case Err:
+		newErr = err
+	default:
+		newErr = ErrInternalServer
+		c.Logger.Error().Msgf("Unhandled error: %+v", err)
+	}
+	_ = c.JSON(newErr.Status, newErr)
+}
 
 type Validatable interface {
 	Validate() error
-}
-
-var ErrInternalServer = Err{
-	Status: http.StatusInternalServerError,
-	Code:   "INTERNAL_SERVER_ERROR",
-	Detail: "Internal server error",
-}
-
-var ErrInvalidBody = Err{
-	Status: http.StatusBadRequest,
-	Code:   "INVALID_REQUEST_BODY",
-	Detail: "Invalid request body",
 }
 
 type Err struct {
@@ -40,51 +117,14 @@ func (err Err) Error() string {
 	return strings.Join(errorParts, "; ")
 }
 
-func Bind(data string, v interface{}) error {
-	if err := json.Unmarshal([]byte(data), v); err != nil {
-		return ErrInvalidBody
-	}
-
-	if validatable, ok := v.(Validatable); ok {
-		err := validatable.Validate()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+var ErrInternalServer = Err{
+	Status: http.StatusInternalServerError,
+	Code:   "INTERNAL_SERVER_ERROR",
+	Detail: "Internal server error",
 }
 
-func Error(err error) (events.APIGatewayProxyResponse, error) {
-	var newErr Err
-	switch err := err.(type) {
-	case Err:
-		newErr = err
-	default:
-		newErr = ErrInternalServer
-		fmt.Printf("Unhandled error: %+v", err)
-	}
-
-	return JSON(newErr.Status, newErr)
-}
-
-func JSON(statusCode int, body interface{}) (events.APIGatewayProxyResponse, error) {
-	var b []byte
-	var err error
-	if body != nil {
-		b, err = json.Marshal(body)
-		if err != nil {
-			statusCode = http.StatusInternalServerError
-			b, _ = json.Marshal(ErrInternalServer)
-		}
-	}
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: statusCode,
-		Body:       string(b),
-	}, nil
-}
-
-func OK(body interface{}) (events.APIGatewayProxyResponse, error) {
-	return JSON(http.StatusOK, body)
+var ErrInvalidBody = Err{
+	Status: http.StatusBadRequest,
+	Code:   "INVALID_REQUEST_BODY",
+	Detail: "Invalid request body",
 }

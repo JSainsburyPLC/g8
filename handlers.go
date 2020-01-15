@@ -168,6 +168,14 @@ var ErrInvalidBody = Err{
 	Detail: "Invalid request body",
 }
 
+func ErrValidation(detail string) Err {
+	return Err{
+		Status: http.StatusBadRequest,
+		Code:   "VALIDATION_ERROR",
+		Detail: detail,
+	}
+}
+
 func getCorrelationID(r events.APIGatewayProxyRequest) string {
 	correlationID := r.Headers[headerCorrelationID]
 	if correlationID != "" {

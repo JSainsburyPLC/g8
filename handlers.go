@@ -45,7 +45,7 @@ func APIGatewayProxyHandler(
 	conf HandlerConfig,
 ) func(context.Context, events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-		correlationID := getCorrelationID(r)
+		correlationID := getCorrelationIDAPIGW(r)
 
 		logger := conf.Logger.With().
 			Str("application", conf.AppName).
@@ -176,7 +176,7 @@ func ErrValidation(detail string) Err {
 	}
 }
 
-func getCorrelationID(r events.APIGatewayProxyRequest) string {
+func getCorrelationIDAPIGW(r events.APIGatewayProxyRequest) string {
 	correlationID := r.Headers[headerCorrelationID]
 	if correlationID != "" {
 		return correlationID

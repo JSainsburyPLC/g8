@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/_integrations/nrlambda"
+	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
 )
 
@@ -134,7 +135,15 @@ func (c *APIGatewayProxyContext) handleError(err error) {
 		newErr = err
 	default:
 		newErr = ErrInternalServer
-		c.Logger.Error().Msgf("Unhandled error: %+v", err)
+		if isErisErr := eris.Unpack(err).ExternalErr == ""; isErisErr {
+			c.Logger.Error().
+				Fields(map[string]interface{}{
+					"error": eris.ToJSON(err, true),
+				}).
+				Msg("Unhandled error")
+		} else {
+			c.Logger.Error().Msgf("Unhandled error: %+v", err)
+		}
 	}
 	_ = c.JSON(newErr.Status, newErr)
 }

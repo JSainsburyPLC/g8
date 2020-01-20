@@ -10,8 +10,10 @@ import (
 
 	"github.com/JSainsburyPLC/g8"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/aws/aws-lambda-go/events"
 	adapter "github.com/gaw508/lambda-proxy-http-adapter"
+	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/assert"
@@ -210,7 +212,36 @@ func TestAPIGatewayProxyHandler_UnhandledErrorResponse(t *testing.T) {
 		HeaderPresent("Correlation-Id").
 		End()
 
-	assert.True(t, containsLogMessage(logBuf.String(), "Unhandled error: some error"))
+	assert.Equal(t, "Unhandled error: some error", jsonPath("$.message", logBuf.Bytes()))
+}
+
+func TestAPIGatewayProxyHandler_UnhandledErrorResponseWithStackTrace(t *testing.T) {
+	h := func(c *g8.APIGatewayProxyContext) error {
+		return eris.Wrap(errors.New("library err"), "application err")
+	}
+
+	logBuf := &bytes.Buffer{}
+	lh := g8.APIGatewayProxyHandler(h, g8.HandlerConfig{
+		Logger: zerolog.New(logBuf),
+	})
+
+	apitest.New().
+		Handler(adapter.GetHttpHandlerWithContext(lh, "/", nil)).
+		Get("/").
+		Expect(t).
+		Status(http.StatusInternalServerError).
+		Body(`{
+					"code": "INTERNAL_SERVER_ERROR",
+					"detail": "Internal server error"
+				}`).
+		HeaderPresent("Correlation-Id").
+		End()
+
+	assert.Equal(t, "Unhandled error", jsonPath("$.message", logBuf.Bytes()))
+	assert.Equal(t, "library err", jsonPath("$.error.root.message", logBuf.Bytes()))
+	assert.NotEmpty(t, jsonPath("$.error.root.stack", logBuf.Bytes()))
+	assert.Equal(t, "application err", jsonPath("$.error.wrap[0].message", logBuf.Bytes()))
+	assert.NotEmpty(t, jsonPath("$.error.wrap[0].stack", logBuf.Bytes()))
 }
 
 func TestError_Error(t *testing.T) {
@@ -242,4 +273,18 @@ func containsLogMessage(fullLog string, message string) bool {
 		}
 	}
 	return false
+}
+
+func jsonPath(path string, jsonData []byte) interface{} {
+	v := interface{}(nil)
+	err := json.Unmarshal(jsonData, &v)
+	if err != nil {
+		panic(err)
+	}
+
+	value, err := jsonpath.Get(path, v)
+	if err != nil {
+		panic(err)
+	}
+	return value
 }

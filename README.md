@@ -107,3 +107,11 @@ Writes the the following response, with status code 400
   "detail": "Invalid param"
 }
 ```
+
+### Logging stack traces
+
+Unhandled errors are logged automatically with a stack trace if the error is wrapped by [eris](https://github.com/rotisserie/eris). 
+
+```go
+eris.Wrapf(err, "failed to send offers to user id: %v", userID)
+```

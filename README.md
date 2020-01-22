@@ -6,6 +6,9 @@ Provides the following utilities to simplify working with AWS lambda and Api Gat
 * HTTP request parsing with JSON support and request body validation
 * HTTP response writer with JSON support
 * Custom error type with JSON support
+* Logging unhandled errors with a stack trace
+* Correlation ID
+* New Relic integration
 
 ## Request body parsing
 

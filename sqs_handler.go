@@ -66,9 +66,8 @@ func SQSHandler(h SQSHandlerFunc, conf HandlerConfig) func(context.Context, even
 			c.AddNewRelicAttribute("correlationID", correlationID)
 			c.AddNewRelicAttribute("buildVersion", conf.BuildVersion)
 
-			err := h(c)
-			if err != nil {
-				c.Logger.Error().Msgf("Unhandled error: %+v", err)
+			if err := h(c); err != nil {
+				logUnhandledError(c.Logger, err)
 				return err
 			}
 		}

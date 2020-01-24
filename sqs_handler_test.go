@@ -1,4 +1,4 @@
-package g8
+package g8_test
 
 import (
 	"context"
@@ -9,11 +9,13 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/JSainsburyPLC/g8"
 )
 
 func TestSQSHandler_SingleMessage(t *testing.T) {
 	timesCalled := 0
-	handlerFunc := func(c *SQSContext) error {
+	handlerFunc := func(c *g8.SQSContext) error {
 		timesCalled++
 		var data map[string]string
 		err := c.Bind(&data)
@@ -27,7 +29,7 @@ func TestSQSHandler_SingleMessage(t *testing.T) {
 		return nil
 	}
 
-	h := SQSHandler(handlerFunc, HandlerConfig{
+	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
 		Logger: zerolog.New(ioutil.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
@@ -50,7 +52,7 @@ func TestSQSHandler_SingleMessage(t *testing.T) {
 
 func TestSQSHandler_MultipleMessages(t *testing.T) {
 	timesCalled := 0
-	handlerFunc := func(c *SQSContext) error {
+	handlerFunc := func(c *g8.SQSContext) error {
 		timesCalled++
 		var data map[string]string
 		err := c.Bind(&data)
@@ -64,7 +66,7 @@ func TestSQSHandler_MultipleMessages(t *testing.T) {
 		return nil
 	}
 
-	h := SQSHandler(handlerFunc, HandlerConfig{
+	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
 		Logger: zerolog.New(ioutil.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
@@ -96,7 +98,7 @@ func TestSQSHandler_MultipleMessages(t *testing.T) {
 
 func TestSQSHandler_EnvelopeNoCorrelationID(t *testing.T) {
 	timesCalled := 0
-	handlerFunc := func(c *SQSContext) error {
+	handlerFunc := func(c *g8.SQSContext) error {
 		timesCalled++
 		var data map[string]string
 		err := c.Bind(&data)
@@ -110,7 +112,7 @@ func TestSQSHandler_EnvelopeNoCorrelationID(t *testing.T) {
 		return nil
 	}
 
-	h := SQSHandler(handlerFunc, HandlerConfig{
+	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
 		Logger: zerolog.New(ioutil.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
@@ -131,7 +133,7 @@ func TestSQSHandler_EnvelopeNoCorrelationID(t *testing.T) {
 
 func TestSQSHandler_NoEnvelope(t *testing.T) {
 	timesCalled := 0
-	handlerFunc := func(c *SQSContext) error {
+	handlerFunc := func(c *g8.SQSContext) error {
 		timesCalled++
 		var data map[string]string
 		err := c.Bind(&data)
@@ -145,7 +147,7 @@ func TestSQSHandler_NoEnvelope(t *testing.T) {
 		return nil
 	}
 
-	h := SQSHandler(handlerFunc, HandlerConfig{
+	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
 		Logger: zerolog.New(ioutil.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
@@ -163,7 +165,7 @@ func TestSQSHandler_NoEnvelope(t *testing.T) {
 
 func TestSQSHandler_InvalidJSON(t *testing.T) {
 	timesCalled := 0
-	handlerFunc := func(c *SQSContext) error {
+	handlerFunc := func(c *g8.SQSContext) error {
 		timesCalled++
 		var data map[string]string
 		err := c.Bind(&data)
@@ -171,7 +173,7 @@ func TestSQSHandler_InvalidJSON(t *testing.T) {
 		return err
 	}
 
-	h := SQSHandler(handlerFunc, HandlerConfig{
+	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
 		Logger: zerolog.New(ioutil.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
@@ -187,12 +189,12 @@ func TestSQSHandler_InvalidJSON(t *testing.T) {
 
 func TestSQSHandler_HandlerError(t *testing.T) {
 	timesCalled := 0
-	handlerFunc := func(c *SQSContext) error {
+	handlerFunc := func(c *g8.SQSContext) error {
 		timesCalled++
 		return assert.AnError
 	}
 
-	h := SQSHandler(handlerFunc, HandlerConfig{
+	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
 		Logger: zerolog.New(ioutil.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{

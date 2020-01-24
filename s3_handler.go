@@ -26,13 +26,9 @@ func S3Handler(h S3HandlerFunc, conf HandlerConfig) func(context.Context, events
 		for _, record := range e.Records {
 			correlationID := uuid.New().String()
 
-			logger := conf.Logger.With().
-				Str("application", conf.AppName).
-				Str("function_name", conf.FunctionName).
-				Str("env", conf.EnvName).
-				Str("build_version", conf.BuildVersion).
-				Str("correlation_id", correlationID).
+			logger := configureLogger(conf).
 				Str("s3_event_source", record.EventSource).
+				Str("correlation_id", correlationID).
 				Logger()
 
 			c := &S3Context{

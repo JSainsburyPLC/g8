@@ -135,17 +135,21 @@ func (c *APIGatewayProxyContext) handleError(err error) {
 		newErr = err
 	default:
 		newErr = ErrInternalServer
-		if isErisErr := eris.Unpack(err).ExternalErr == ""; isErisErr {
-			c.Logger.Error().
-				Fields(map[string]interface{}{
-					"error": eris.ToJSON(err, true),
-				}).
-				Msg("Unhandled error")
-		} else {
-			c.Logger.Error().Msgf("Unhandled error: %+v", err)
-		}
+		logUnhandledError(c.Logger, err)
 	}
 	_ = c.JSON(newErr.Status, newErr)
+}
+
+func logUnhandledError(logger zerolog.Logger, err error) {
+	if isErisErr := eris.Unpack(err).ExternalErr == ""; isErisErr {
+		logger.Error().
+			Fields(map[string]interface{}{
+				"error": eris.ToJSON(err, true),
+			}).
+			Msg("Unhandled error")
+	} else {
+		logger.Error().Msgf("Unhandled error: %+v", err)
+	}
 }
 
 type Validatable interface {

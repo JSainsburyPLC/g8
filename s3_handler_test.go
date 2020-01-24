@@ -1,4 +1,4 @@
-package g8
+package g8_test
 
 import (
 	"context"
@@ -9,18 +9,20 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/JSainsburyPLC/g8"
 )
 
 func TestS3Handler_SingleMessage(t *testing.T) {
 	timesCalled := 0
-	h := S3Handler(func(c *S3Context) error {
+	h := g8.S3Handler(func(c *g8.S3Context) error {
 		timesCalled++
 
 		assert.Equal(t, "12345", c.EventRecord.S3.Object.Key)
 		assert.NotEmpty(t, c.CorrelationID)
 
 		return nil
-	}, HandlerConfig{Logger: zerolog.New(ioutil.Discard)})
+	}, g8.HandlerConfig{Logger: zerolog.New(ioutil.Discard)})
 
 	err := h(context.Background(), events.S3Event{
 		Records: []events.S3EventRecord{
@@ -39,14 +41,14 @@ func TestS3Handler_SingleMessage(t *testing.T) {
 
 func TestS3Handler_MultipleMessages(t *testing.T) {
 	timesCalled := 0
-	h := S3Handler(func(c *S3Context) error {
+	h := g8.S3Handler(func(c *g8.S3Context) error {
 		timesCalled++
 
 		assert.Equal(t, fmt.Sprintf("key-%d", timesCalled), c.EventRecord.S3.Object.Key)
 		assert.NotEmpty(t, c.CorrelationID)
 
 		return nil
-	}, HandlerConfig{Logger: zerolog.New(ioutil.Discard)})
+	}, g8.HandlerConfig{Logger: zerolog.New(ioutil.Discard)})
 
 	err := h(context.Background(), events.S3Event{
 		Records: []events.S3EventRecord{
@@ -72,12 +74,12 @@ func TestS3Handler_MultipleMessages(t *testing.T) {
 
 func TestS3Handler_HandlerError(t *testing.T) {
 	timesCalled := 0
-	handlerFunc := func(c *S3Context) error {
+	handlerFunc := func(c *g8.S3Context) error {
 		timesCalled++
 		return assert.AnError
 	}
 
-	h := S3Handler(handlerFunc, HandlerConfig{
+	h := g8.S3Handler(handlerFunc, g8.HandlerConfig{
 		Logger: zerolog.New(ioutil.Discard),
 	})
 	err := h(context.Background(), events.S3Event{

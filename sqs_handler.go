@@ -42,11 +42,7 @@ func SQSHandler(h SQSHandlerFunc, conf HandlerConfig) func(context.Context, even
 
 			correlationID := getCorrelationIDSQS(meta)
 
-			logger := conf.Logger.With().
-				Str("application", conf.AppName).
-				Str("function_name", conf.FunctionName).
-				Str("env", conf.EnvName).
-				Str("build_version", conf.BuildVersion).
+			logger := configureLogger(conf).
 				Str("correlation_id", correlationID).
 				Str("sqs_event_source", record.EventSource).
 				Str("sqs_message_id", record.MessageId).

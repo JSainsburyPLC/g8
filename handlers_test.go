@@ -2,6 +2,7 @@ package g8_test
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"testing"
 

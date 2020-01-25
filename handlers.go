@@ -24,6 +24,8 @@ type HandlerConfig struct {
 	NewRelicApp  newrelic.Application
 }
 
+type LambdaResult interface{}
+
 type Validatable interface {
 	Validate() error
 }

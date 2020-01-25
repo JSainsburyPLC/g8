@@ -19,10 +19,10 @@ type CloudWatchContext struct {
 	CorrelationID string
 }
 
-type CloudWatchHandlerFunc func(c *CloudWatchContext) error
+type CloudWatchHandlerFunc func(c *CloudWatchContext) (LambdaResult, error)
 
-func CloudWatchHandler(h CloudWatchHandlerFunc, conf HandlerConfig) func(context.Context, events.CloudWatchEvent) error {
-	return func(ctx context.Context, event events.CloudWatchEvent) error {
+func CloudWatchHandler(h CloudWatchHandlerFunc, conf HandlerConfig) func(context.Context, events.CloudWatchEvent) (LambdaResult, error) {
+	return func(ctx context.Context, event events.CloudWatchEvent) (LambdaResult, error) {
 		correlationID := uuid.New().String()
 
 		// the resource that triggered the event, e.g. "arn:aws:events:us-east-1:123456789012:rule/MyScheduledRule"
@@ -49,11 +49,11 @@ func CloudWatchHandler(h CloudWatchHandlerFunc, conf HandlerConfig) func(context
 		c.AddNewRelicAttribute("correlationID", correlationID)
 		c.AddNewRelicAttribute("cloudWatchResource", cloudWatchResource)
 
-		if err := h(c); err != nil {
+		result, err := h(c)
+		if err != nil {
 			logUnhandledError(c.Logger, err)
-			return err
 		}
-		return nil
+		return result, err
 	}
 }
 

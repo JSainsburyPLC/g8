@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/JSainsburyPLC/g8/auth"
+	"github.com/w32blaster/g8/auth"
 
 	"github.com/aws/aws-lambda-go/events"
 	newrelic "github.com/newrelic/go-agent"

@@ -2,6 +2,8 @@ package g8
 
 import (
 	"context"
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/newrelic/go-agent/_integrations/nrlambda"
 	"strings"
 
 	"github.com/w32blaster/g8/auth"
@@ -76,6 +78,10 @@ func APIGatewayCustomAuthorizerHandler(
 
 		return resp.APIGatewayCustomAuthorizerResponse, nil
 	}
+}
+
+func APIGatewayCustomAuthorizerHandlerWithNewRelic(h GetUserPincipalID, conf HandlerConfig) lambda.Handler {
+	return nrlambda.Wrap(APIGatewayCustomAuthorizerHandler(h, conf), conf.NewRelicApp)
 }
 
 func (c *APIGatewayCustomAuthorizerContext) AddNewRelicAttribute(key string, val interface{}) {

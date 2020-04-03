@@ -11,5 +11,5 @@ require (
 	github.com/rotisserie/eris v0.2.0
 	github.com/rs/zerolog v1.17.2
 	github.com/steinfletcher/apitest v1.4.0
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 )

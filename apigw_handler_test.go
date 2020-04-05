@@ -214,6 +214,31 @@ func TestAPIGatewayProxyHandler_UnhandledErrorResponse(t *testing.T) {
 	assert.Equal(t, "Unhandled error: some error", jsonPath("$.message", logBuf.Bytes()))
 }
 
+func TestAPIGatewayProxyHandler_GetCookie(t *testing.T) {
+	h := func(c *g8.APIGatewayProxyContext) error {
+		cookie, ok := c.GetCookie("cookieName")
+		assert.True(t, ok)
+		assert.Equal(t, cookie.Value, "cookieValue")
+
+		c.Response.StatusCode = http.StatusOK
+		return nil
+	}
+
+	logBuf := &bytes.Buffer{}
+	lh := g8.APIGatewayProxyHandler(h, g8.HandlerConfig{
+		Logger: zerolog.New(logBuf),
+	})
+
+	apitest.New().
+		Handler(adapter.GetHttpHandlerWithContext(lh, "/", nil)).
+		Get("/").
+		Cookie("otherCookie", "otherCookieValue").
+		Cookie("cookieName", "cookieValue").
+		Expect(t).
+		Status(http.StatusOK).
+		End()
+}
+
 func containsLogMessage(fullLog string, message string) bool {
 	type log struct {
 		Message string `json:"message"`

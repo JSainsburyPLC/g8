@@ -1,8 +1,12 @@
 package g8
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -116,6 +120,40 @@ func (c *APIGatewayProxyContext) handleError(err error) {
 		logUnhandledError(c.Logger, err)
 	}
 	_ = c.JSON(newErr.Status, newErr)
+}
+
+// GetCookie retrieves the cookie with the given name
+func (c *APIGatewayProxyContext) GetCookie(name string) (http.Cookie, bool) {
+	rawCookies := c.GetHeader("cookie")
+	if rawCookies == "" {
+		return http.Cookie{}, false
+	}
+
+	rawRequest := fmt.Sprintf("GET / HTTP/1.0\r\nCookie: %s\r\n\r\n", rawCookies)
+	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(rawRequest)))
+	if err != nil {
+		return http.Cookie{}, false
+	}
+
+	for _, cookie := range req.Cookies() {
+		if cookie.Name == name {
+			return *cookie, true
+		}
+	}
+
+	return http.Cookie{}, false
+}
+
+// GetHeader retrieves the header value by name. It canonicalizes headers to ensure that values can be accessed
+// in a case insensitive manner
+func (c *APIGatewayProxyContext) GetHeader(name string) string {
+	canonicalHeaders := http.Header{}
+	for k, v := range c.Request.MultiValueHeaders {
+		for _, value := range v {
+			canonicalHeaders.Add(k, value)
+		}
+	}
+	return canonicalHeaders.Get(name)
 }
 
 func getCorrelationIDAPIGW(r events.APIGatewayProxyRequest) string {

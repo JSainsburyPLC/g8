@@ -2,6 +2,7 @@ package g8
 
 import (
 	"context"
+	"errors"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/newrelic/go-agent/_integrations/nrlambda"
 	"strings"
@@ -23,12 +24,12 @@ type APIGatewayCustomAuthorizerContext struct {
 	CorrelationID string
 }
 
-// GetUserPincipalID custom function to find a Pirncipal ID for the current user in a specific way
-type GetUserPincipalID func(c *APIGatewayCustomAuthorizerContext) (string, error)
+// GetUserPrincipalID custom function to find a Pirncipal ID for the current user in a specific way
+type GetUserPrincipalID func(c *APIGatewayCustomAuthorizerContext) (string, error)
 
 // APIGatewayCustomAuthorizerHandler fd
 func APIGatewayCustomAuthorizerHandler(
-	getPrincipalID GetUserPincipalID,
+	getPrincipalID GetUserPrincipalID,
 	conf HandlerConfig,
 ) func(context.Context, events.APIGatewayCustomAuthorizerRequestTypeRequest) (events.APIGatewayCustomAuthorizerResponse, error) {
 
@@ -46,6 +47,10 @@ func APIGatewayCustomAuthorizerHandler(
 			Logger:        logger,
 			NewRelicTx:    newrelic.FromContext(ctx),
 			CorrelationID: correlationID,
+		}
+
+		if len(r.MethodArn) == 0 {
+			return events.APIGatewayCustomAuthorizerResponse{}, errors.New("MethodArn is not set")
 		}
 
 		// DEBUG
@@ -80,7 +85,7 @@ func APIGatewayCustomAuthorizerHandler(
 	}
 }
 
-func APIGatewayCustomAuthorizerHandlerWithNewRelic(h GetUserPincipalID, conf HandlerConfig) lambda.Handler {
+func APIGatewayCustomAuthorizerHandlerWithNewRelic(h GetUserPrincipalID, conf HandlerConfig) lambda.Handler {
 	return nrlambda.Wrap(APIGatewayCustomAuthorizerHandler(h, conf), conf.NewRelicApp)
 }
 

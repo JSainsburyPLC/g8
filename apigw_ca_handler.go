@@ -54,8 +54,7 @@ func APIGatewayCustomAuthorizerHandler(
 		}
 
 		// DEBUG
-		logger.Print("G8 Custom Authorizer: Method ARN: " + r.MethodArn)
-		logger.Print(r.Headers)
+		logger.Info().Str("method_arn", r.MethodArn).Msg("G8 Custom Authorizer")
 
 		// UNIT TEST
 		tmp := strings.Split(r.MethodArn, ":")
@@ -80,6 +79,13 @@ func APIGatewayCustomAuthorizerHandler(
 		c.AddNewRelicAttribute("route", r.RequestContext.ResourcePath)
 		c.AddNewRelicAttribute("correlationID", correlationID)
 		c.AddNewRelicAttribute("buildVersion", conf.BuildVersion)
+
+		logger.Info().
+			Str("function_name", conf.FunctionName).
+			Str("route", r.RequestContext.ResourcePath).
+			Str("principal_id", principalID).
+			Str("account_aws", awsAccountID).
+			Msg("G8 Custom Authorizer successful")
 
 		return resp.APIGatewayCustomAuthorizerResponse, nil
 	}

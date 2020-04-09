@@ -75,6 +75,9 @@ func APIGatewayCustomAuthorizerHandler(
 			"customer-id": principalID,
 		}
 
+		// TODO TUESDAY!!! Remove this to calling code, they better know what to allow
+		resp.AllowAllMethods()
+
 		c.AddNewRelicAttribute("functionName", conf.FunctionName)
 		c.AddNewRelicAttribute("route", r.RequestContext.ResourcePath)
 		c.AddNewRelicAttribute("correlationID", correlationID)

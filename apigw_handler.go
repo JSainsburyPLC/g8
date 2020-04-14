@@ -156,8 +156,8 @@ func (c *APIGatewayProxyContext) GetHeader(name string) string {
 	return canonicalHeaders.Get(name)
 }
 
-func getCorrelationIDAPIGW(r events.APIGatewayProxyRequest) string {
-	correlationID := r.Headers[headerCorrelationID]
+func getCorrelationIDAPIGW(headers map[string]string) string {
+	correlationID := headers[headerCorrelationID]
 	if correlationID != "" {
 		return correlationID
 	}

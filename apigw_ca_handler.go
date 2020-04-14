@@ -24,20 +24,20 @@ type APIGatewayCustomAuthorizerContext struct {
 	CorrelationID string
 }
 
-// GetUserPrincipalID custom function to find a Pirncipal ID for the current user in a specific way
-type GetUserPrincipalID func(c *APIGatewayCustomAuthorizerContext) (string, error)
-
-// ApplyMethodRules is the function where calling code may declare rules for methods
-type ApplyMethodRules func(r *auth.AuthorizerResponse)
+// APIGatewayCustomAuthorizerHandlerFunc to populate
+type APIGatewayCustomAuthorizerHandlerFunc func(c *APIGatewayCustomAuthorizerContext) error
 
 // APIGatewayCustomAuthorizerHandler fd
 func APIGatewayCustomAuthorizerHandler(
-	fnGetPrincipalID GetUserPrincipalID,
-	fnApplyMethodRules ApplyMethodRules,
+	h APIGatewayCustomAuthorizerHandlerFunc,
 	conf HandlerConfig,
 ) func(context.Context, events.APIGatewayCustomAuthorizerRequestTypeRequest) (events.APIGatewayCustomAuthorizerResponse, error) {
 
 	return func(ctx context.Context, r events.APIGatewayCustomAuthorizerRequestTypeRequest) (events.APIGatewayCustomAuthorizerResponse, error) {
+		if len(r.MethodArn) == 0 {
+			return events.APIGatewayCustomAuthorizerResponse{}, errors.New("MethodArn is not set")
+		}
+
 		correlationID := getCorrelationIDAPIGW(r.Headers)
 
 		logger := configureLogger(conf).
@@ -53,34 +53,31 @@ func APIGatewayCustomAuthorizerHandler(
 			CorrelationID: correlationID,
 		}
 
-		if len(r.MethodArn) == 0 {
-			return events.APIGatewayCustomAuthorizerResponse{}, errors.New("MethodArn is not set")
-		}
-
 		tmp := strings.Split(r.MethodArn, ":")
 		apiGatewayArnTmp := strings.Split(tmp[5], "/")
 		awsAccountID := tmp[4]
 
-		principalID, err := fnGetPrincipalID(c)
-		if err != nil {
+		c.Response = auth.NewAuthorizerResponse(awsAccountID)
+		c.Response.Region = tmp[3]
+		c.Response.APIID = apiGatewayArnTmp[0]
+		c.Response.Stage = apiGatewayArnTmp[1]
+
+		if err := h(c); err != nil {
+			logger.Err(err).Msg("Error while calling user-defined function")
 			return events.APIGatewayCustomAuthorizerResponse{}, err
 		}
 
-		resp := auth.NewAuthorizerResponse(principalID, awsAccountID)
-		resp.Region = tmp[3]
-		resp.APIID = apiGatewayArnTmp[0]
-		resp.Stage = apiGatewayArnTmp[1]
-
-		resp.Context = map[string]interface{}{
-			"customer-id": principalID,
+		c.Response.Context = map[string]interface{}{
+			"customer-id": c.Response.PrincipalID,
 		}
 
-		fnApplyMethodRules(resp)
-
 		// sanity check
-		if !resp.HasAllowingMethod() {
+		if !c.Response.HasAllowingMethod() {
 			logger.Warn().Msg("Warning! No method were allowed! That means no requests will pass this " +
 				"authorizer! Please double check the policy.")
+		}
+		if len(c.Response.PrincipalID) == 0 {
+			logger.Warn().Msg("Warning! The PrincipalID was not defined! Please set it using c.Response.SetPrincipalID() function")
 		}
 
 		c.AddNewRelicAttribute("functionName", conf.FunctionName)
@@ -91,16 +88,16 @@ func APIGatewayCustomAuthorizerHandler(
 		logger.Debug().
 			Str("function_name", conf.FunctionName).
 			Str("route", r.RequestContext.ResourcePath).
-			Str("principal_id", principalID).
+			Str("principal_id", c.Response.PrincipalID).
 			Str("account_aws", awsAccountID).
 			Msg("G8 Custom Authorizer successful")
 
-		return resp.APIGatewayCustomAuthorizerResponse, nil
+		return c.Response.APIGatewayCustomAuthorizerResponse, nil
 	}
 }
 
-func APIGatewayCustomAuthorizerHandlerWithNewRelic(h GetUserPrincipalID, r ApplyMethodRules, conf HandlerConfig) lambda.Handler {
-	return nrlambda.Wrap(APIGatewayCustomAuthorizerHandler(h, r, conf), conf.NewRelicApp)
+func APIGatewayCustomAuthorizerHandlerWithNewRelic(h APIGatewayCustomAuthorizerHandlerFunc, conf HandlerConfig) lambda.Handler {
+	return nrlambda.Wrap(APIGatewayCustomAuthorizerHandler(h, conf), conf.NewRelicApp)
 }
 
 func (c *APIGatewayCustomAuthorizerContext) AddNewRelicAttribute(key string, val interface{}) {

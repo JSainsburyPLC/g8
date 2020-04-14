@@ -74,16 +74,15 @@ func (e Effect) String() string {
 	return ""
 }
 
-func NewAuthorizerResponse(principalID string, AccountID string) *AuthorizerResponse {
-	return &AuthorizerResponse{
+func NewAuthorizerResponse(accountID string) AuthorizerResponse {
+	return AuthorizerResponse{
 		APIGatewayCustomAuthorizerResponse: events.APIGatewayCustomAuthorizerResponse{
-			PrincipalID: principalID,
 			PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
 				Version: "2012-10-17",
 			},
 		},
 		Region:    "*",
-		AccountID: AccountID,
+		AccountID: accountID,
 		APIID:     "*",
 		Stage:     "*",
 	}
@@ -105,6 +104,10 @@ func (r *AuthorizerResponse) addMethod(effect Effect, verb HttpVerb, resource st
 	}
 
 	r.PolicyDocument.Statement = append(r.PolicyDocument.Statement, s)
+}
+
+func (r *AuthorizerResponse) SetPrincipalID(principalID string) {
+	r.PrincipalID = principalID
 }
 
 func (r *AuthorizerResponse) AllowAllMethods() {

@@ -67,32 +67,32 @@ handler := func(c *g8.APIGatewayProxyContext) error {
 
 You can define your custom authorization logic in the *AWS API Gateway*, where you can implement how your users will be 
 authorized. This is done my defining ["Custom Authorizer"](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html) 
-inside your API Gateway, that can call a lambda function. But 
-in this case the request and response of this lambda function should follow defined structure. In order to support custom 
+inside your API Gateway, that can call a lambda function. 
+In this case the request and response of this lambda function should follow defined structure. In order to support custom 
 authorization lambda function G8 framework offers you some ready integration.
 
 ```go
     
-	handler := g8.APIGatewayCustomAuthorizerHandlerWithNewRelic(
-		func(c *g8.APIGatewayCustomAuthorizerContext) (string, error) {
-            // here you verify in your app specific way the request and return some Principal ID
-			return "some-user-principal-id", nil
-        },
-        func(resp *auth.AuthorizerResponse) {
-        	// here you define which methods/paths are allowed, which are disabled. If you won't allow some
+    handler := g8.APIGatewayCustomAuthorizerHandlerWithNewRelic(
+        func(c *APIGatewayCustomAuthorizerContext) error{
+            // please, provide a PrincipalID for the current user in your app specific way
+            c.Response.SetPrincipalID("some-principal-ID")
+
+            // and don't forget to define which methods/paths are allowed, which are disabled. If you won't allow some
             // paths explicitly here, then no requests will pass this authorizer and hit backed.
+            c.Response.AllowAllMethods()
 
-        	// Examples:
-			// resp.AllowAllMethods()
-            // resp.DenyAllMethods()
-            // resp.AllowMethod(Post, "/pets/*")
-		},
-		g8.HandlerConfig{
-			...
-		},
-	)
+            // other examples:
+            // c.Response.DenyAllMethods()
+            // c.Response.AllowMethod(Post, "/pets/*")
+            return nil
+        },
+        g8.HandlerConfig{
+            ...
+        },
+    )
 
-	lambda.StartHandler(handler
+    lambda.StartHandler(handler)
 
 ```
 

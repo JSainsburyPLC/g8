@@ -57,10 +57,6 @@ func APIGatewayCustomAuthorizerHandler(
 			return events.APIGatewayCustomAuthorizerResponse{}, errors.New("MethodArn is not set")
 		}
 
-		// DEBUG
-		logger.Info().Str("method_arn", r.MethodArn).Msg("G8 Custom Authorizer")
-
-		// UNIT TEST
 		tmp := strings.Split(r.MethodArn, ":")
 		apiGatewayArnTmp := strings.Split(tmp[5], "/")
 		awsAccountID := tmp[4]
@@ -92,7 +88,7 @@ func APIGatewayCustomAuthorizerHandler(
 		c.AddNewRelicAttribute("correlationID", correlationID)
 		c.AddNewRelicAttribute("buildVersion", conf.BuildVersion)
 
-		logger.Info().
+		logger.Debug().
 			Str("function_name", conf.FunctionName).
 			Str("route", r.RequestContext.ResourcePath).
 			Str("principal_id", principalID).

@@ -72,24 +72,27 @@ in this case the request and response of this lambda function should follow defi
 authorization lambda function G8 framework offers you some ready integration.
 
 ```go
-
-    func getUserDetailsHandler() g8.GetUserPincipalID {
-        // function where you define how to t
-        return func(c *g8.APIGatewayCustomAuthorizerContext) (string, error) {
-            return "some-user-principal-id", nil
-        }
-    }
     
-    ...
-
 	handler := g8.APIGatewayCustomAuthorizerHandlerWithNewRelic(
-		getUserDetailsHandler(),
+		func(c *g8.APIGatewayCustomAuthorizerContext) (string, error) {
+            // here you verify in your app specific way the request and return some Principal ID
+			return "some-user-principal-id", nil
+        },
+        func(resp *auth.AuthorizerResponse) {
+        	// here you define which methods/paths are allowed, which are disabled. If you won't allow some
+            // paths explicitly here, then no requests will pass this authorizer and hit backed.
+
+        	// Examples:
+			// resp.AllowAllMethods()
+            // resp.DenyAllMethods()
+            // resp.AllowMethod(Post, "/pets/*")
+		},
 		g8.HandlerConfig{
 			...
 		},
 	)
 
-	lambda.StartHandler(handler)
+	lambda.StartHandler(handler
 
 ```
 

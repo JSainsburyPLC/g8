@@ -78,8 +78,9 @@ authorization lambda function G8 framework offers you some ready integration.
             // please, provide a PrincipalID for the current user in your app specific way
             c.Response.SetPrincipalID("some-principal-ID")
 
-            // and don't forget to define which methods/paths are allowed, which are disabled. If you won't allow some
-            // paths explicitly here, then no requests will pass this authorizer and hit backed.
+            // and don't forget to define which methods/paths are allowed, which are disabled.
+            // NB, if you won't allow some paths explicitly here, then no requests will pass
+            // this authorizer and hit backed.
             c.Response.AllowAllMethods()
 
             // other examples:

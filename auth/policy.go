@@ -122,3 +122,19 @@ func (r *AuthorizerResponse) AllowMethod(verb HttpVerb, resource string) {
 func (r *AuthorizerResponse) DenyMethod(verb HttpVerb, resource string) {
 	r.addMethod(Deny, verb, resource)
 }
+
+// HasAllowingMethod returns true if there is at least one "allow" method added to policy
+func (r *AuthorizerResponse) HasAllowingMethod() bool {
+	if len(r.PolicyDocument.Statement) == 0 {
+		return false
+	}
+
+	strAllow := Allow.String()
+	for _, m := range r.PolicyDocument.Statement {
+		if m.Effect == strAllow {
+			return true
+		}
+	}
+
+	return false
+}

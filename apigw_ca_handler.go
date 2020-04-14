@@ -27,9 +27,13 @@ type APIGatewayCustomAuthorizerContext struct {
 // GetUserPrincipalID custom function to find a Pirncipal ID for the current user in a specific way
 type GetUserPrincipalID func(c *APIGatewayCustomAuthorizerContext) (string, error)
 
+// ApplyMethodRules is the function where calling code may declare rules for methods
+type ApplyMethodRules func(r *auth.AuthorizerResponse)
+
 // APIGatewayCustomAuthorizerHandler fd
 func APIGatewayCustomAuthorizerHandler(
-	getPrincipalID GetUserPrincipalID,
+	fnGetPrincipalID GetUserPrincipalID,
+	fnApplyMethodRules ApplyMethodRules,
 	conf HandlerConfig,
 ) func(context.Context, events.APIGatewayCustomAuthorizerRequestTypeRequest) (events.APIGatewayCustomAuthorizerResponse, error) {
 
@@ -61,7 +65,7 @@ func APIGatewayCustomAuthorizerHandler(
 		apiGatewayArnTmp := strings.Split(tmp[5], "/")
 		awsAccountID := tmp[4]
 
-		principalID, err := getPrincipalID(c)
+		principalID, err := fnGetPrincipalID(c)
 		if err != nil {
 			return events.APIGatewayCustomAuthorizerResponse{}, err
 		}
@@ -75,8 +79,13 @@ func APIGatewayCustomAuthorizerHandler(
 			"customer-id": principalID,
 		}
 
-		// TODO TUESDAY!!! Remove this to calling code, they better know what to allow
-		resp.AllowAllMethods()
+		fnApplyMethodRules(resp)
+
+		// sanity check
+		if !resp.HasAllowingMethod() {
+			logger.Warn().Msg("Warning! No method were allowed! That means no requests will pass this " +
+				"authorizer! Please double check the policy.")
+		}
 
 		c.AddNewRelicAttribute("functionName", conf.FunctionName)
 		c.AddNewRelicAttribute("route", r.RequestContext.ResourcePath)
@@ -94,8 +103,8 @@ func APIGatewayCustomAuthorizerHandler(
 	}
 }
 
-func APIGatewayCustomAuthorizerHandlerWithNewRelic(h GetUserPrincipalID, conf HandlerConfig) lambda.Handler {
-	return nrlambda.Wrap(APIGatewayCustomAuthorizerHandler(h, conf), conf.NewRelicApp)
+func APIGatewayCustomAuthorizerHandlerWithNewRelic(h GetUserPrincipalID, r ApplyMethodRules, conf HandlerConfig) lambda.Handler {
+	return nrlambda.Wrap(APIGatewayCustomAuthorizerHandler(h, r, conf), conf.NewRelicApp)
 }
 
 func (c *APIGatewayCustomAuthorizerContext) AddNewRelicAttribute(key string, val interface{}) {

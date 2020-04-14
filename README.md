@@ -66,7 +66,8 @@ handler := func(c *g8.APIGatewayProxyContext) error {
 ## Authorization Request
 
 You can define your custom authorization logic in the *AWS API Gateway*, where you can implement how your users will be 
-authorized. This is done my defining ["Custom Authorizer"](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html) 
+authorized. 
+This is done my defining ["Custom Authorizer"](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html) 
 inside your API Gateway, that can call a lambda function. 
 In this case the request and response of this lambda function should follow defined structure. In order to support custom 
 authorization lambda function G8 framework offers you some ready integration.

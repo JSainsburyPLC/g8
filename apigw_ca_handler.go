@@ -3,14 +3,14 @@ package g8
 import (
 	"context"
 	"errors"
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/newrelic/go-agent/_integrations/nrlambda"
 	"strings"
 
 	"github.com/JSainsburyPLC/g8/auth"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/_integrations/nrlambda"
 	"github.com/rs/zerolog"
 )
 

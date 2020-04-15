@@ -3,10 +3,6 @@ package g8
 import (
 	"context"
 	"errors"
-	"strings"
-
-	"github.com/JSainsburyPLC/g8/auth"
-
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	newrelic "github.com/newrelic/go-agent"
@@ -16,12 +12,13 @@ import (
 
 // APIGatewayCustomAuthorizerContext the context for a request for Custom Authorizer
 type APIGatewayCustomAuthorizerContext struct {
-	Context       context.Context
-	Request       events.APIGatewayCustomAuthorizerRequestTypeRequest
-	Response      auth.AuthorizerResponse
-	Logger        zerolog.Logger
-	NewRelicTx    newrelic.Transaction
-	CorrelationID string
+	Context        context.Context
+	Request        events.APIGatewayCustomAuthorizerRequestTypeRequest
+	Response       events.APIGatewayCustomAuthorizerResponse
+	Logger         zerolog.Logger
+	NewRelicTx     newrelic.Transaction
+	CorrelationID  string
+	methodArnParts methodARN
 }
 
 // APIGatewayCustomAuthorizerHandlerFunc to populate
@@ -50,21 +47,13 @@ func APIGatewayCustomAuthorizerHandler(
 			Logger()
 
 		c := &APIGatewayCustomAuthorizerContext{
-			Context:       ctx,
-			Request:       r,
-			Logger:        logger,
-			NewRelicTx:    newrelic.FromContext(ctx),
-			CorrelationID: correlationID,
+			Context:        ctx,
+			Request:        r,
+			Logger:         logger,
+			NewRelicTx:     newrelic.FromContext(ctx),
+			CorrelationID:  correlationID,
+			methodArnParts: parseFromMethodARN(r.MethodArn),
 		}
-
-		tmp := strings.Split(r.MethodArn, ":")
-		apiGatewayArnTmp := strings.Split(tmp[5], "/")
-		awsAccountID := tmp[4]
-
-		c.Response = auth.NewAuthorizerResponse(awsAccountID)
-		c.Response.Region = tmp[3]
-		c.Response.APIID = apiGatewayArnTmp[0]
-		c.Response.Stage = apiGatewayArnTmp[1]
 
 		if err := h(c); err != nil {
 			logger.Err(err).Msg("Error while calling user-defined function")
@@ -72,7 +61,7 @@ func APIGatewayCustomAuthorizerHandler(
 		}
 
 		// sanity check
-		if !c.Response.HasAllowingMethod() {
+		if !c.HasAllowingMethod() {
 			logger.Warn().Msg("Warning! No method were allowed! That means no requests will pass this " +
 				"authorizer! Please double check the policy.")
 		}
@@ -91,10 +80,10 @@ func APIGatewayCustomAuthorizerHandler(
 
 		logger.Debug().
 			Str("principal_id", c.Response.PrincipalID).
-			Str("account_aws", awsAccountID).
+			Str("account_aws", c.methodArnParts.AccountID).
 			Msg("G8 Custom Authorizer successful")
 
-		return c.Response.APIGatewayCustomAuthorizerResponse, nil
+		return c.Response, nil
 	}
 }
 

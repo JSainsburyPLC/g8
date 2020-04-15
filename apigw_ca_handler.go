@@ -43,6 +43,10 @@ func APIGatewayCustomAuthorizerHandler(
 		logger := configureLogger(conf).
 			Str("route", r.RequestContext.ResourcePath).
 			Str("correlation_id", correlationID).
+			Str("application", conf.AppName).
+			Str("function_name", conf.FunctionName).
+			Str("env", conf.EnvName).
+			Str("build_version", conf.BuildVersion).
 			Logger()
 
 		c := &APIGatewayCustomAuthorizerContext{
@@ -67,10 +71,6 @@ func APIGatewayCustomAuthorizerHandler(
 			return events.APIGatewayCustomAuthorizerResponse{}, err
 		}
 
-		c.Response.Context = map[string]interface{}{
-			"customer-id": c.Response.PrincipalID,
-		}
-
 		// sanity check
 		if !c.Response.HasAllowingMethod() {
 			logger.Warn().Msg("Warning! No method were allowed! That means no requests will pass this " +
@@ -80,14 +80,16 @@ func APIGatewayCustomAuthorizerHandler(
 			logger.Warn().Msg("Warning! The PrincipalID was not defined! Please set it using c.Response.SetPrincipalID() function")
 		}
 
+		c.Response.Context = map[string]interface{}{
+			"customer-id": c.Response.PrincipalID,
+		}
+
 		c.AddNewRelicAttribute("functionName", conf.FunctionName)
 		c.AddNewRelicAttribute("route", r.RequestContext.ResourcePath)
 		c.AddNewRelicAttribute("correlationID", correlationID)
 		c.AddNewRelicAttribute("buildVersion", conf.BuildVersion)
 
 		logger.Debug().
-			Str("function_name", conf.FunctionName).
-			Str("route", r.RequestContext.ResourcePath).
 			Str("principal_id", c.Response.PrincipalID).
 			Str("account_aws", awsAccountID).
 			Msg("G8 Custom Authorizer successful")

@@ -88,19 +88,31 @@ func NewAuthorizerResponse(accountID string) AuthorizerResponse {
 	}
 }
 
+func (r *AuthorizerResponse) buildResourceARN(verb HttpVerb, resource string) string {
+	var str strings.Builder
+
+	str.WriteString("arn:aws:execute-api:")
+	str.WriteString(r.Region)
+	str.WriteString(":")
+	str.WriteString(r.AccountID)
+	str.WriteString(":")
+	str.WriteString(r.APIID)
+	str.WriteString("/")
+	str.WriteString(r.Stage)
+	str.WriteString("/")
+	str.WriteString(verb.String())
+	str.WriteString("/")
+	str.WriteString(strings.TrimLeft(resource, "/"))
+
+	return str.String()
+}
+
 func (r *AuthorizerResponse) addMethod(effect Effect, verb HttpVerb, resource string) {
-	resourceArn := "arn:aws:execute-api:" +
-		r.Region + ":" +
-		r.AccountID + ":" +
-		r.APIID + "/" +
-		r.Stage + "/" +
-		verb.String() + "/" +
-		strings.TrimLeft(resource, "/")
 
 	s := events.IAMPolicyStatement{
 		Effect:   effect.String(),
 		Action:   []string{"execute-api:Invoke"},
-		Resource: []string{resourceArn},
+		Resource: []string{r.buildResourceARN(verb, resource)},
 	}
 
 	r.PolicyDocument.Statement = append(r.PolicyDocument.Statement, s)

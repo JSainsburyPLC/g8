@@ -8,7 +8,7 @@ import (
 func TestHasMethodsEmpty(t *testing.T) {
 
 	// Given:
-	resp := NewAuthorizerResponse("principal-ID", "aws-account-id")
+	resp := NewAuthorizerResponse("aws-account-id")
 
 	// When:
 	hasAllowMethods := resp.HasAllowingMethod()
@@ -20,7 +20,7 @@ func TestHasMethodsEmpty(t *testing.T) {
 func TestHasMethodsNonEmptyButContainsAllDenies(t *testing.T) {
 
 	// Given:
-	resp := NewAuthorizerResponse("principal-ID", "aws-account-id")
+	resp := NewAuthorizerResponse("aws-account-id")
 
 	// and
 	resp.DenyAllMethods()
@@ -35,7 +35,7 @@ func TestHasMethodsNonEmptyButContainsAllDenies(t *testing.T) {
 func TestHasMethodsAllowsAllMethods(t *testing.T) {
 
 	// Given:
-	resp := NewAuthorizerResponse("principal-ID", "aws-account-id")
+	resp := NewAuthorizerResponse("aws-account-id")
 
 	// and
 	resp.AllowAllMethods()
@@ -50,7 +50,7 @@ func TestHasMethodsAllowsAllMethods(t *testing.T) {
 func TestHasMethodsHasMixedAllowAndDenyMethods(t *testing.T) {
 
 	// Given:
-	resp := NewAuthorizerResponse("principal-ID", "aws-account-id")
+	resp := NewAuthorizerResponse("aws-account-id")
 
 	// and
 	resp.AllowMethod(Post, "/pets/*")
@@ -65,4 +65,30 @@ func TestHasMethodsHasMixedAllowAndDenyMethods(t *testing.T) {
 
 	// Then:
 	assert.True(t, hasAllowMethods)
+}
+
+func TestBuildResourceArn(t *testing.T) {
+
+	// Given:
+	resp := NewAuthorizerResponse("aws-account-id")
+	resp.SetPrincipalID("principal-id")
+
+	// When
+	resourceARN := resp.buildResourceARN(Post, "/pets/*")
+
+	// Then:
+	assert.Equal(t, "arn:aws:execute-api:*:aws-account-id:*/*/POST/pets/*", resourceARN)
+}
+
+func TestBuildResourceArnAllowAll(t *testing.T) {
+
+	// Given:
+	resp := NewAuthorizerResponse("aws-account-id")
+	resp.SetPrincipalID("principal-id")
+
+	// When
+	resourceARN := resp.buildResourceARN(All, "*")
+
+	// Then:
+	assert.Equal(t, "arn:aws:execute-api:*:aws-account-id:*/*/*/*", resourceARN)
 }

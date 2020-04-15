@@ -1,11 +1,11 @@
 package auth
 
 import (
-	"strings"
-
 	"github.com/aws/aws-lambda-go/events"
+	"strings"
 )
 
+// AuthorizerResponse struct is used to build proper MethodARN policy
 type AuthorizerResponse struct {
 	events.APIGatewayCustomAuthorizerResponse
 
@@ -22,40 +22,7 @@ type AuthorizerResponse struct {
 	Stage string
 }
 
-type HttpVerb int
-
-const (
-	Get HttpVerb = iota
-	Post
-	Put
-	Delete
-	Patch
-	Head
-	Options
-	All
-)
-
-func (hv HttpVerb) String() string {
-	switch hv {
-	case Get:
-		return "GET"
-	case Post:
-		return "POST"
-	case Put:
-		return "PUT"
-	case Delete:
-		return "DELETE"
-	case Patch:
-		return "PATCH"
-	case Head:
-		return "HEAD"
-	case Options:
-		return "OPTIONS"
-	case All:
-		return "*"
-	}
-	return ""
-}
+const All = "*"
 
 type Effect int
 
@@ -88,7 +55,7 @@ func NewAuthorizerResponse(accountID string) AuthorizerResponse {
 	}
 }
 
-func (r *AuthorizerResponse) buildResourceARN(verb HttpVerb, resource string) string {
+func (r *AuthorizerResponse) buildResourceARN(verb, resource string) string {
 	var str strings.Builder
 
 	str.WriteString("arn:aws:execute-api:")
@@ -100,14 +67,14 @@ func (r *AuthorizerResponse) buildResourceARN(verb HttpVerb, resource string) st
 	str.WriteString("/")
 	str.WriteString(r.Stage)
 	str.WriteString("/")
-	str.WriteString(verb.String())
+	str.WriteString(verb)
 	str.WriteString("/")
 	str.WriteString(strings.TrimLeft(resource, "/"))
 
 	return str.String()
 }
 
-func (r *AuthorizerResponse) addMethod(effect Effect, verb HttpVerb, resource string) {
+func (r *AuthorizerResponse) addMethod(effect Effect, verb, resource string) {
 
 	s := events.IAMPolicyStatement{
 		Effect:   effect.String(),
@@ -130,11 +97,11 @@ func (r *AuthorizerResponse) DenyAllMethods() {
 	r.addMethod(Deny, All, "*")
 }
 
-func (r *AuthorizerResponse) AllowMethod(verb HttpVerb, resource string) {
+func (r *AuthorizerResponse) AllowMethod(verb, resource string) {
 	r.addMethod(Allow, verb, resource)
 }
 
-func (r *AuthorizerResponse) DenyMethod(verb HttpVerb, resource string) {
+func (r *AuthorizerResponse) DenyMethod(verb, resource string) {
 	r.addMethod(Deny, verb, resource)
 }
 

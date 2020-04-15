@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/stretchr/testify/assert"
+	"net/http"
 	"testing"
 )
 
@@ -53,12 +54,12 @@ func TestHasMethodsHasMixedAllowAndDenyMethods(t *testing.T) {
 	resp := NewAuthorizerResponse("aws-account-id")
 
 	// and
-	resp.AllowMethod(Post, "/pets/*")
-	resp.AllowMethod(Delete, "/cars/*")
-	resp.AllowMethod(Get, "/users/*") // <-- !!!
-	resp.AllowMethod(Post, "/picture/update")
-	resp.AllowMethod(Post, "/picture/assign")
-	resp.AllowMethod(Put, "/users/new")
+	resp.AllowMethod(http.MethodPost, "/pets/*")
+	resp.AllowMethod(http.MethodDelete, "/cars/*")
+	resp.AllowMethod(http.MethodGet, "/users/*") // <-- !!!
+	resp.AllowMethod(http.MethodPost, "/picture/update")
+	resp.AllowMethod(http.MethodPost, "/picture/assign")
+	resp.AllowMethod(http.MethodPut, "/users/new")
 
 	// When:
 	hasAllowMethods := resp.HasAllowingMethod()
@@ -74,7 +75,7 @@ func TestBuildResourceArn(t *testing.T) {
 	resp.SetPrincipalID("principal-id")
 
 	// When
-	resourceARN := resp.buildResourceARN(Post, "/pets/*")
+	resourceARN := resp.buildResourceARN(http.MethodPost, "/pets/*")
 
 	// Then:
 	assert.Equal(t, "arn:aws:execute-api:*:aws-account-id:*/*/POST/pets/*", resourceARN)

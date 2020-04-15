@@ -80,48 +80,34 @@ func NewAuthorizerResponse() events.APIGatewayCustomAuthorizerResponse {
 	}
 }
 
-func (r *APIGatewayCustomAuthorizerContext) addMethod(effect Effect, verb, resource string) {
+func (c *APIGatewayCustomAuthorizerContext) addMethod(effect Effect, verb, resource string) {
 	s := events.IAMPolicyStatement{
 		Effect:   effect.String(),
 		Action:   []string{"execute-api:Invoke"},
-		Resource: []string{r.methodArnParts.buildResourceARN(verb, resource)},
+		Resource: []string{c.methodArnParts.buildResourceARN(verb, resource)},
 	}
 
-	r.Response.PolicyDocument.Statement = append(r.Response.PolicyDocument.Statement, s)
+	c.Response.PolicyDocument.Statement = append(c.Response.PolicyDocument.Statement, s)
 }
 
-func (r *APIGatewayCustomAuthorizerContext) SetPrincipalID(principalID string) {
-	r.Response.PrincipalID = principalID
+func (c *APIGatewayCustomAuthorizerContext) SetPrincipalID(principalID string) {
+	c.Response.PrincipalID = principalID
 }
 
-func (r *APIGatewayCustomAuthorizerContext) AllowAllMethods() {
-	r.addMethod(Allow, All, "*")
+func (c *APIGatewayCustomAuthorizerContext) AllowAllMethods() {
+	c.hasAtLeastOneAllowedMethod = true
+	c.addMethod(Allow, All, "*")
 }
 
-func (r *APIGatewayCustomAuthorizerContext) DenyAllMethods() {
-	r.addMethod(Deny, All, "*")
+func (c *APIGatewayCustomAuthorizerContext) DenyAllMethods() {
+	c.addMethod(Deny, All, "*")
 }
 
-func (r *APIGatewayCustomAuthorizerContext) AllowMethod(verb, resource string) {
-	r.addMethod(Allow, verb, resource)
+func (c *APIGatewayCustomAuthorizerContext) AllowMethod(verb, resource string) {
+	c.hasAtLeastOneAllowedMethod = true
+	c.addMethod(Allow, verb, resource)
 }
 
-func (r *APIGatewayCustomAuthorizerContext) DenyMethod(verb, resource string) {
-	r.addMethod(Deny, verb, resource)
-}
-
-// HasAllowingMethod returns true if there is at least one "allow" method added to policy
-func (r *APIGatewayCustomAuthorizerContext) HasAllowingMethod() bool {
-	if len(r.Response.PolicyDocument.Statement) == 0 {
-		return false
-	}
-
-	strAllow := Allow.String()
-	for _, m := range r.Response.PolicyDocument.Statement {
-		if m.Effect == strAllow {
-			return true
-		}
-	}
-
-	return false
+func (c *APIGatewayCustomAuthorizerContext) DenyMethod(verb, resource string) {
+	c.addMethod(Deny, verb, resource)
 }

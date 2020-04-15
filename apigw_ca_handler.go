@@ -12,13 +12,14 @@ import (
 
 // APIGatewayCustomAuthorizerContext the context for a request for Custom Authorizer
 type APIGatewayCustomAuthorizerContext struct {
-	Context        context.Context
-	Request        events.APIGatewayCustomAuthorizerRequestTypeRequest
-	Response       events.APIGatewayCustomAuthorizerResponse
-	Logger         zerolog.Logger
-	NewRelicTx     newrelic.Transaction
-	CorrelationID  string
-	methodArnParts methodARN
+	Context                    context.Context
+	Request                    events.APIGatewayCustomAuthorizerRequestTypeRequest
+	Response                   events.APIGatewayCustomAuthorizerResponse
+	Logger                     zerolog.Logger
+	NewRelicTx                 newrelic.Transaction
+	CorrelationID              string
+	methodArnParts             methodARN
+	hasAtLeastOneAllowedMethod bool
 }
 
 // APIGatewayCustomAuthorizerHandlerFunc to populate
@@ -61,7 +62,7 @@ func APIGatewayCustomAuthorizerHandler(
 		}
 
 		// sanity check
-		if !c.HasAllowingMethod() {
+		if !c.hasAtLeastOneAllowedMethod {
 			logger.Warn().Msg("Warning! No method were allowed! That means no requests will pass this " +
 				"authorizer! Please double check the policy.")
 		}

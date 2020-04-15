@@ -11,11 +11,8 @@ func TestHasMethodsEmpty(t *testing.T) {
 	// Given:
 	c := APIGatewayCustomAuthorizerContext{}
 
-	// When:
-	hasAllowMethods := c.HasAllowingMethod()
-
 	// Then:
-	assert.False(t, hasAllowMethods)
+	assert.False(t, c.hasAtLeastOneAllowedMethod) // <-- default value is false
 }
 
 func TestHasMethodsNonEmptyButContainsAllDenies(t *testing.T) {
@@ -23,14 +20,11 @@ func TestHasMethodsNonEmptyButContainsAllDenies(t *testing.T) {
 	// Given:
 	c := APIGatewayCustomAuthorizerContext{}
 
-	// and
+	// When
 	c.DenyAllMethods()
 
-	// When:
-	hasAllowMethods := c.HasAllowingMethod()
-
 	// Then:
-	assert.False(t, hasAllowMethods)
+	assert.False(t, c.hasAtLeastOneAllowedMethod)
 }
 
 func TestHasMethodsAllowsAllMethods(t *testing.T) {
@@ -38,14 +32,11 @@ func TestHasMethodsAllowsAllMethods(t *testing.T) {
 	// Given:
 	c := APIGatewayCustomAuthorizerContext{}
 
-	// and
+	// When
 	c.AllowAllMethods()
 
-	// When:
-	hasAllowMethods := c.HasAllowingMethod()
-
 	// Then:
-	assert.True(t, hasAllowMethods)
+	assert.True(t, c.hasAtLeastOneAllowedMethod)
 }
 
 func TestHasMethodsHasMixedAllowAndDenyMethods(t *testing.T) {
@@ -53,7 +44,7 @@ func TestHasMethodsHasMixedAllowAndDenyMethods(t *testing.T) {
 	// Given:
 	c := APIGatewayCustomAuthorizerContext{}
 
-	// and
+	// When
 	c.AllowMethod(http.MethodPost, "/pets/*")
 	c.AllowMethod(http.MethodDelete, "/cars/*")
 	c.AllowMethod(http.MethodGet, "/users/*") // <-- !!!
@@ -61,11 +52,8 @@ func TestHasMethodsHasMixedAllowAndDenyMethods(t *testing.T) {
 	c.AllowMethod(http.MethodPost, "/picture/assign")
 	c.AllowMethod(http.MethodPut, "/users/new")
 
-	// When:
-	hasAllowMethods := c.HasAllowingMethod()
-
 	// Then:
-	assert.True(t, hasAllowMethods)
+	assert.True(t, c.hasAtLeastOneAllowedMethod)
 }
 
 func TestBuildResourceArn(t *testing.T) {

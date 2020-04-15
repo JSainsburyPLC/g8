@@ -45,12 +45,12 @@ func TestHasMethodsHasMixedAllowAndDenyMethods(t *testing.T) {
 	c := APIGatewayCustomAuthorizerContext{}
 
 	// When
-	c.AllowMethod(http.MethodPost, "/pets/*")
-	c.AllowMethod(http.MethodDelete, "/cars/*")
+	c.DenyMethod(http.MethodPost, "/pets/*")
+	c.DenyMethod(http.MethodDelete, "/cars/*")
 	c.AllowMethod(http.MethodGet, "/users/*") // <-- !!!
-	c.AllowMethod(http.MethodPost, "/picture/update")
-	c.AllowMethod(http.MethodPost, "/picture/assign")
-	c.AllowMethod(http.MethodPut, "/users/new")
+	c.DenyMethod(http.MethodPost, "/picture/update")
+	c.DenyMethod(http.MethodPost, "/picture/assign")
+	c.DenyMethod(http.MethodPut, "/users/new")
 
 	// Then:
 	assert.True(t, c.hasAtLeastOneAllowedMethod)

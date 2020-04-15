@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/JSainsburyPLC/g8"
+	"github.com/w32blaster/g8"
 )
 
 func TestSQSHandler_SingleMessage(t *testing.T) {

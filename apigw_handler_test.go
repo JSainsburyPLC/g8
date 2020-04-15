@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JSainsburyPLC/g8"
+	"github.com/w32blaster/g8"
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aws/aws-lambda-go/events"

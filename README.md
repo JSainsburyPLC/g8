@@ -63,6 +63,32 @@ handler := func(c *g8.APIGatewayProxyContext) error {
 }
 ```
 
+## API Gateway Lambda Authorizer Handlers
+
+You are able to define handlers for [Lambda Authorizer](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html) 
+(previously known as custom authorizers) using g8. Here is an example:
+
+```go
+    
+    handler := g8.APIGatewayCustomAuthorizerHandlerWithNewRelic(
+        func(c *APIGatewayCustomAuthorizerContext) error{
+            c.Response.SetPrincipalID("some-principal-ID")
+
+            c.Response.AllowAllMethods()
+            // other examples:
+            // c.Response.DenyAllMethods()
+            // c.Response.AllowMethod(Post, "/pets/*")
+            return nil
+        },
+        g8.HandlerConfig{
+            ...
+        },
+    )
+
+    lambda.StartHandler(handler)
+
+```
+
 ## Response writing
 
 There are several methods provided to simplify writing HTTP responses. 

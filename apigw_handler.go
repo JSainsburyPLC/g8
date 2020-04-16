@@ -32,7 +32,7 @@ func APIGatewayProxyHandler(
 	conf HandlerConfig,
 ) func(context.Context, events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-		correlationID := getCorrelationIDAPIGW(r)
+		correlationID := getCorrelationIDAPIGW(r.Headers)
 
 		logger := configureLogger(conf).
 			Str("route", r.RequestContext.ResourcePath).
@@ -156,8 +156,8 @@ func (c *APIGatewayProxyContext) GetHeader(name string) string {
 	return canonicalHeaders.Get(name)
 }
 
-func getCorrelationIDAPIGW(r events.APIGatewayProxyRequest) string {
-	correlationID := r.Headers[headerCorrelationID]
+func getCorrelationIDAPIGW(headers map[string]string) string {
+	correlationID := headers[headerCorrelationID]
 	if correlationID != "" {
 		return correlationID
 	}

@@ -1,7 +1,6 @@
 package g8
 
 import (
-	"github.com/aws/aws-lambda-go/events"
 	"strings"
 )
 
@@ -70,44 +69,4 @@ func (r *methodARN) buildResourceARN(verb, resource string) string {
 	str.WriteString(strings.TrimLeft(resource, "/"))
 
 	return str.String()
-}
-
-func NewAuthorizerResponse() events.APIGatewayCustomAuthorizerResponse {
-	return events.APIGatewayCustomAuthorizerResponse{
-		PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
-			Version: "2012-10-17",
-		},
-	}
-}
-
-func (c *APIGatewayCustomAuthorizerContext) addMethod(effect Effect, verb, resource string) {
-	s := events.IAMPolicyStatement{
-		Effect:   effect.String(),
-		Action:   []string{"execute-api:Invoke"},
-		Resource: []string{c.methodArnParts.buildResourceARN(verb, resource)},
-	}
-
-	c.Response.PolicyDocument.Statement = append(c.Response.PolicyDocument.Statement, s)
-}
-
-func (c *APIGatewayCustomAuthorizerContext) SetPrincipalID(principalID string) {
-	c.Response.PrincipalID = principalID
-}
-
-func (c *APIGatewayCustomAuthorizerContext) AllowAllMethods() {
-	c.hasAtLeastOneAllowedMethod = true
-	c.addMethod(Allow, All, "*")
-}
-
-func (c *APIGatewayCustomAuthorizerContext) DenyAllMethods() {
-	c.addMethod(Deny, All, "*")
-}
-
-func (c *APIGatewayCustomAuthorizerContext) AllowMethod(verb, resource string) {
-	c.hasAtLeastOneAllowedMethod = true
-	c.addMethod(Allow, verb, resource)
-}
-
-func (c *APIGatewayCustomAuthorizerContext) DenyMethod(verb, resource string) {
-	c.addMethod(Deny, verb, resource)
 }

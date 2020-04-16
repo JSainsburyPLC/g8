@@ -48,13 +48,14 @@ func APIGatewayCustomAuthorizerHandler(
 			Logger()
 
 		c := &APIGatewayCustomAuthorizerContext{
-			Context:        ctx,
-			Request:        r,
-			Response:       NewAuthorizerResponse(),
-			Logger:         logger,
-			NewRelicTx:     newrelic.FromContext(ctx),
-			CorrelationID:  correlationID,
-			methodArnParts: parseFromMethodARN(r.MethodArn),
+			Context:                    ctx,
+			Request:                    r,
+			Response:                   NewAuthorizerResponse(),
+			Logger:                     logger,
+			NewRelicTx:                 newrelic.FromContext(ctx),
+			CorrelationID:              correlationID,
+			methodArnParts:             parseFromMethodARN(r.MethodArn),
+			hasAtLeastOneAllowedMethod: false,
 		}
 
 		if err := h(c); err != nil {
@@ -100,4 +101,44 @@ func (c *APIGatewayCustomAuthorizerContext) AddNewRelicAttribute(key string, val
 	if err := c.NewRelicTx.AddAttribute(key, val); err != nil {
 		c.Logger.Error().Msgf("failed to add attr '%s' to new relic tx: %+v", key, err)
 	}
+}
+
+func NewAuthorizerResponse() events.APIGatewayCustomAuthorizerResponse {
+	return events.APIGatewayCustomAuthorizerResponse{
+		PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
+			Version: "2012-10-17",
+		},
+	}
+}
+
+func (c *APIGatewayCustomAuthorizerContext) addMethod(effect Effect, verb, resource string) {
+	s := events.IAMPolicyStatement{
+		Effect:   effect.String(),
+		Action:   []string{"execute-api:Invoke"},
+		Resource: []string{c.methodArnParts.buildResourceARN(verb, resource)},
+	}
+
+	c.Response.PolicyDocument.Statement = append(c.Response.PolicyDocument.Statement, s)
+}
+
+func (c *APIGatewayCustomAuthorizerContext) SetPrincipalID(principalID string) {
+	c.Response.PrincipalID = principalID
+}
+
+func (c *APIGatewayCustomAuthorizerContext) AllowAllMethods() {
+	c.hasAtLeastOneAllowedMethod = true
+	c.addMethod(Allow, All, "*")
+}
+
+func (c *APIGatewayCustomAuthorizerContext) DenyAllMethods() {
+	c.addMethod(Deny, All, "*")
+}
+
+func (c *APIGatewayCustomAuthorizerContext) AllowMethod(verb, resource string) {
+	c.hasAtLeastOneAllowedMethod = true
+	c.addMethod(Allow, verb, resource)
+}
+
+func (c *APIGatewayCustomAuthorizerContext) DenyMethod(verb, resource string) {
+	c.addMethod(Deny, verb, resource)
 }

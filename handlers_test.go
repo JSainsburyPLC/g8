@@ -12,7 +12,7 @@ import (
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/w32blaster/g8"
+	"github.com/JSainsburyPLC/g8"
 )
 
 func TestError_Error(t *testing.T) {

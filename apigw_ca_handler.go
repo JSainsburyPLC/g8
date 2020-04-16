@@ -85,8 +85,6 @@ func APIGatewayCustomAuthorizerHandler(
 			Str("account_aws", c.methodArnParts.AccountID).
 			Msg("G8 Custom Authorizer successful")
 
-		logger.Debug().Msgf("POLICY: %s", c.Response.PolicyDocument)
-
 		return c.Response, nil
 	}
 }

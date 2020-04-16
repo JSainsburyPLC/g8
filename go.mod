@@ -1,4 +1,4 @@
-module github.com/w32blaster/g8
+module github.com/JSainsburyPLC/g8
 
 go 1.13
 

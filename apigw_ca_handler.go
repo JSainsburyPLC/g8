@@ -50,6 +50,7 @@ func APIGatewayCustomAuthorizerHandler(
 		c := &APIGatewayCustomAuthorizerContext{
 			Context:        ctx,
 			Request:        r,
+			Response:       NewAuthorizerResponse(),
 			Logger:         logger,
 			NewRelicTx:     newrelic.FromContext(ctx),
 			CorrelationID:  correlationID,
@@ -83,9 +84,6 @@ func APIGatewayCustomAuthorizerHandler(
 			Str("principal_id", c.Response.PrincipalID).
 			Str("account_aws", c.methodArnParts.AccountID).
 			Msg("G8 Custom Authorizer successful")
-
-		// DEBUG
-		c.AllowAllMethods()
 
 		logger.Debug().Msgf("POLICY: %s", c.Response.PolicyDocument)
 

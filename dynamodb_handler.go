@@ -42,7 +42,7 @@ func DynamoDbHandler(h DynamoHandlerFunc, conf HandlerConfig) func(context.Conte
 			c.AddNewRelicAttribute("functionName", conf.FunctionName)
 			c.AddNewRelicAttribute("buildVersion", conf.BuildVersion)
 			c.AddNewRelicAttribute("correlationID", correlationID)
-			c.AddNewRelicAttribute("s3EventSource", record.EventSource)
+			c.AddNewRelicAttribute("dynamoDBEventSource", record.EventSource)
 
 			if err := h(c); err != nil {
 				logUnhandledError(c.Logger, err)

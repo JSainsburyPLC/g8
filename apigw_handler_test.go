@@ -110,6 +110,7 @@ func TestAPIGatewayProxyContext_JSON(t *testing.T) {
 			},
 			expectedRes: events.APIGatewayProxyResponse{
 				StatusCode: 200,
+				Headers:    map[string]string{"Content-Type": "application/json"},
 				Body:       `{"name":"one","status":"ok"}`,
 			},
 		},

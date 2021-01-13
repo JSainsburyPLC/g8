@@ -95,6 +95,11 @@ func (c *APIGatewayProxyContext) JSON(statusCode int, body interface{}) error {
 		if err != nil {
 			return err
 		}
+
+		if c.Response.Headers == nil {
+			c.Response.Headers = make(map[string]string)
+		}
+		c.Response.Headers["Content-Type"] = "application/json"
 	}
 	c.Response.StatusCode = statusCode
 	c.Response.Body = string(b)

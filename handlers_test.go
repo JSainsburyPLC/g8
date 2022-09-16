@@ -28,7 +28,7 @@ func TestError_Error(t *testing.T) {
 	}
 }
 
-func TestAPIGatewayProxyHandler_UnhandledExternalErrorResponseWithStackTrace(t *testing.T) {
+func TestAPIGatewayProxyHandler_UnhandledErrorResponseWithStackTrace(t *testing.T) {
 	h := func(c *g8.APIGatewayProxyContext) error {
 		return eris.Wrap(errors.New("external error"), "additional context")
 	}

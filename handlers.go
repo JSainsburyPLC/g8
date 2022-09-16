@@ -72,13 +72,9 @@ func configureLogger(conf HandlerConfig) zerolog.Context {
 }
 
 func logUnhandledError(logger zerolog.Logger, err error) {
-	if isErisErr := eris.Unpack(err).ExternalErr == ""; isErisErr {
-		logger.Error().
-			Fields(map[string]interface{}{
-				"error": eris.ToJSON(err, true),
-			}).
-			Msg("Unhandled error")
-	} else {
-		logger.Error().Msgf("Unhandled error: %+v", err)
-	}
+	logger.Error().
+		Fields(map[string]interface{}{
+			"error": eris.ToJSON(err, true),
+		}).
+		Msg("Unhandled error")
 }

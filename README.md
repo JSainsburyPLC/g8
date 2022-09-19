@@ -1,6 +1,6 @@
 # g8
 
-Provides the following utilities to simplify working with AWS lambda and Api Gateway.
+Provides the following utilities to simplify working with AWS lambda and API Gateway.
 
 * Simple handler interface
 * HTTP request parsing with JSON support and request body validation
@@ -128,7 +128,7 @@ handler := func(c *g8.APIGatewayProxyContext) error {
 }
 ```
 
-Writes the the following response, with status code 400
+Writes the following response, with status code 400
 
 ```json
 {
@@ -139,8 +139,13 @@ Writes the the following response, with status code 400
 
 ### Logging stack traces
 
-Unhandled errors are logged automatically with a stack trace if the error is wrapped by [eris](https://github.com/rotisserie/eris). 
+Unhandled errors are logged automatically with a stack trace if the error is wrapped by [eris](https://github.com/rotisserie/eris).
+
+The new version of eris handles errors differently and produce a different JSON response compared to the previous version, additionally all errors now produce a JSON response, please fully test these changes. 
 
 ```go
 eris.Wrapf(err, "failed to send offers to user id: %v", userID)
 ```
+
+### Requirements
+ * Go 1.19+

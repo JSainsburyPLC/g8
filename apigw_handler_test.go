@@ -212,7 +212,8 @@ func TestAPIGatewayProxyHandler_UnhandledErrorResponse(t *testing.T) {
 		HeaderPresent("Correlation-Id").
 		End()
 
-	assert.Equal(t, "Unhandled error: some error", jsonPath("$.message", logBuf.Bytes()))
+	assert.Equal(t, "some error", jsonPath("$.error.external", logBuf.Bytes()))
+	assert.Equal(t, "Unhandled error", jsonPath("$.message", logBuf.Bytes()))
 }
 
 func TestAPIGatewayProxyHandler_GetCookie(t *testing.T) {

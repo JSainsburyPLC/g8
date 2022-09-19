@@ -1,0 +1,79 @@
+{
+  "schema-version": "1.0.0",
+  "name": "g8",
+  "description": "Provides the utilities to simplify working with AWS lambda and Api Gateway.",
+  "maintainers": [
+    {
+      "type": "TEAM",
+      "name": "GOL Discover",
+      "email": "gol-team-1@sainsburys.co.uk"
+    },
+    {
+      "type": "TEAM",
+      "name": "GOL Decide",
+      "email": "gol-team-2@sainsburys.co.uk"
+    },
+    {
+      "type": "TEAM",
+      "name": "GOL Buy",
+      "email": "gol-team-3@sainsburys.co.uk"
+    },
+    {
+      "type": "TEAM",
+      "name": "GOL Favourites",
+      "email": "gol_favourites_team@sainsburys.co.uk"
+    },
+    {
+      "type": "TEAM",
+      "name": "GOL Apps",
+      "email": "gol-app@sainsburys.co.uk"
+    },
+    {
+      "type": "CONTRIBUTOR",
+      "name": "John Fallis",
+      "email": "john.fallis@sainsburys.co.uk"
+    }
+  ],
+  "owners": [
+    {
+      "type": "TEAM",
+      "name": "GOL Discover",
+      "email": "gol-team-1@sainsburys.co.uk"
+    },
+    {
+      "type": "TEAM",
+      "name": "GOL Decide",
+      "email": "gol-team-2@sainsburys.co.uk"
+    },
+    {
+      "type": "TEAM",
+      "name": "GOL Buy",
+      "email": "gol-team-3@sainsburys.co.uk"
+    },
+    {
+      "type": "TEAM",
+      "name": "GOL Favourites",
+      "email": "gol_favourites_team@sainsburys.co.uk"
+    },
+    {
+      "type": "TEAM",
+      "name": "GOL Apps",
+      "email": "gol-app@sainsburys.co.uk"
+    },
+    {
+      "type": "CONTRIBUTOR",
+      "name": "John Fallis",
+      "email": "john.fallis@sainsburys.co.uk"
+    },
+    {
+      "type": "PRODUCT-MANAGEMENT",
+      "name": "Shah Ahmed",
+      "email": "shah.ahmed2@sainsburys.co.uk"
+    },
+    {
+      "type": "ORG",
+      "name": "Myles Noton",
+      "email": "myles.noton@sainsburys.co.uk"
+    }
+  ]
+}

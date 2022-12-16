@@ -25,7 +25,8 @@ type HandlerConfig struct {
 }
 
 type LambdaResult interface{}
-type LambdaEvent interface{}
+
+type StepEvent interface{}
 
 type Validatable interface {
 	Validate() error

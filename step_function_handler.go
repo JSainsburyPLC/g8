@@ -11,16 +11,16 @@ import (
 
 type StepContext struct {
 	Context       context.Context
-	Event         LambdaEvent
+	Event         StepEvent
 	Logger        zerolog.Logger
 	NewRelicTx    newrelic.Transaction
 	CorrelationID string
 }
 
-type StepHandlerFunc func(c *StepContext) (LambdaEvent, error)
+type StepHandlerFunc func(c *StepContext) (StepEvent, error)
 
-func StepHandler(h StepHandlerFunc, conf HandlerConfig) func(context.Context, LambdaEvent) (LambdaEvent, error) {
-	return func(ctx context.Context, e LambdaEvent) (LambdaEvent, error) {
+func StepHandler(h StepHandlerFunc, conf HandlerConfig) func(context.Context, StepEvent) (StepEvent, error) {
+	return func(ctx context.Context, e StepEvent) (StepEvent, error) {
 		correlationID := uuid.New().String()
 
 		logger := configureLogger(conf).

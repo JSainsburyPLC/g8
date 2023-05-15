@@ -147,5 +147,27 @@ The new version of eris handles errors differently and produce a different JSON 
 eris.Wrapf(err, "failed to send offers to user id: %v", userID)
 ```
 
+### Pact HTTP provider testing
+
+The `NewHTTPHandler` function can be used to create adaptors for `g8.APIGatewayProxyHandler` lambdas and serve HTTP for pact provider testing to aid engineers and verify that an API provider adheres to a number of pacts authored by its clients.
+
+#### Example
+```go
+	g8.NewHTTPHandler(LambdaHandlerEndpoints{
+		g8.LambdaHandler{
+			Handler:    pact.ExampleGetStub,
+			Method:     http.MethodGet,
+			Path:       "/full/url/path/{var1}/{var2}",
+			PathParams: []string{"var1", "var2"},
+		},
+		g8.LambdaHandler{
+			Handler:    pact.ExamplePostStub,
+			Method:     http.MethodPost,
+			Path:       "/another/full/url/path/{var1}",
+			PathParams: []string{"var1"},
+		},
+	}, 8080)
+```
+
 ### Requirements
  * Go 1.19+

@@ -6,6 +6,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/aws/aws-lambda-go v1.34.1
 	github.com/gaw508/lambda-proxy-http-adapter v0.1.0
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/google/uuid v1.3.0
 	github.com/newrelic/go-agent v3.19.0+incompatible
 	github.com/rotisserie/eris v0.5.4

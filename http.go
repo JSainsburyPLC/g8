@@ -54,6 +54,7 @@ func LambdaAdapter(l LambdaHandler) func(http.ResponseWriter, *http.Request) {
 				}
 			}
 
+			resp.Headers["Content-Type"] = "application/json"
 			w.WriteHeader(resp.StatusCode)
 			for k, v := range resp.Headers {
 				w.Header().Set(k, v)

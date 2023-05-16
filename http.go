@@ -54,18 +54,14 @@ func LambdaAdapter(l LambdaHandler) func(http.ResponseWriter, *http.Request) {
 				}
 			}
 
-			if resp.Headers == nil {
-				resp.Headers = make(map[string]string)
-			}
-			resp.Headers["Content-Type"] = "application/json"
-			w.WriteHeader(resp.StatusCode)
+			w.Header().Set("Content-Type", "application/json")
 			for k, v := range resp.Headers {
 				w.Header().Set(k, v)
 			}
 			for k, v := range resp.MultiValueHeaders {
 				w.Header().Set(k, strings.Join(v, ","))
 			}
-
+			w.WriteHeader(resp.StatusCode)
 			if _, wErr := w.Write([]byte(resp.Body)); wErr != nil {
 				panic(wErr)
 			}

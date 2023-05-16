@@ -33,7 +33,7 @@ func TestLambdaAdapter(t *testing.T) {
 	g8.LambdaAdapter(l)(w, r)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
+	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
 	assert.Equal(t, "cookie1,cookie2", w.Header().Get("Set-Cookie"))
 	assert.Equal(t, "success", w.Body.String())
 }

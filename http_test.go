@@ -38,6 +38,30 @@ func TestLambdaAdapter(t *testing.T) {
 	assert.Equal(t, "success", w.Body.String())
 }
 
+func TestLambdaAdapter_without_content_type(t *testing.T) {
+	l := g8.LambdaHandler{
+		Handler: func(ctx context.Context, r events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+			return &events.APIGatewayProxyResponse{
+				StatusCode:        http.StatusOK,
+				MultiValueHeaders: map[string][]string{"Set-Cookie": {"cookie1", "cookie2"}},
+				Body:              "success",
+			}, nil
+		},
+		Method:     http.MethodGet,
+		Path:       "/test/url/path/{var1}/{var2}",
+		PathParams: []string{"var1", "var2"},
+	}
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/test/url/path/var1/var2", nil)
+	g8.LambdaAdapter(l)(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
+	assert.Equal(t, "cookie1,cookie2", w.Header().Get("Set-Cookie"))
+	assert.Equal(t, "success", w.Body.String())
+}
+
 func TestLambdaAdapter_g8_error(t *testing.T) {
 	l := g8.LambdaHandler{
 		Handler: func(ctx context.Context, r events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {

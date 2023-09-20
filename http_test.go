@@ -1,26 +1,27 @@
 package g8_test
 
 import (
-	"context"
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/JSainsburyPLC/g8"
 )
 
 func TestLambdaAdapter(t *testing.T) {
 	l := g8.LambdaHandler{
-		Handler: func(ctx context.Context, r events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-			return &events.APIGatewayProxyResponse{
+		Handler: func(ctx *g8.APIGatewayProxyContext) error {
+			ctx.Response = events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusOK,
 				Headers:           map[string]string{"Content-Type": "text/plain"},
 				MultiValueHeaders: map[string][]string{"Set-Cookie": {"cookie1", "cookie2"}},
 				Body:              "success",
-			}, nil
+			}
+			return nil
 		},
 		Method:     http.MethodGet,
 		Path:       "/test/url/path/{var1}/{var2}",
@@ -40,12 +41,13 @@ func TestLambdaAdapter(t *testing.T) {
 
 func TestLambdaAdapter_without_content_type(t *testing.T) {
 	l := g8.LambdaHandler{
-		Handler: func(ctx context.Context, r events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-			return &events.APIGatewayProxyResponse{
+		Handler: func(ctx *g8.APIGatewayProxyContext) error {
+			ctx.Response = events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusOK,
 				MultiValueHeaders: map[string][]string{"Set-Cookie": {"cookie1", "cookie2"}},
 				Body:              `{"message":"success"}`,
-			}, nil
+			}
+			return nil
 		},
 		Method:     http.MethodGet,
 		Path:       "/test/url/path/{var1}/{var2}",
@@ -64,8 +66,8 @@ func TestLambdaAdapter_without_content_type(t *testing.T) {
 
 func TestLambdaAdapter_g8_error(t *testing.T) {
 	l := g8.LambdaHandler{
-		Handler: func(ctx context.Context, r events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-			return nil, g8.ErrInternalServer
+		Handler: func(ctx *g8.APIGatewayProxyContext) error {
+			return g8.ErrInternalServer
 		},
 		Method: http.MethodGet,
 		Path:   "/test/url/path",
@@ -83,8 +85,8 @@ func TestLambdaAdapter_g8_error(t *testing.T) {
 
 func TestLambdaAdapter_generic_error(t *testing.T) {
 	l := g8.LambdaHandler{
-		Handler: func(ctx context.Context, r events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-			return nil, fmt.Errorf("generic error")
+		Handler: func(ctx *g8.APIGatewayProxyContext) error {
+			return fmt.Errorf("generic error")
 		},
 		Method: http.MethodGet,
 		Path:   "/test/url/path",

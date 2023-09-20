@@ -1,25 +1,25 @@
 package g8
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/go-chi/chi/v5"
 )
 
 const (
-	WELCOME_MESSAGE       = "G8 HTTP server is running on port"
-	UNHANDLED_ERR_MESSAGE = "unhandled error: "
+	WelcomeMessage      = "G8 HTTP server is running on port"
+	UnhandledErrMessage = "unhandled error: "
 )
 
 type LambdaHandlerEndpoints []LambdaHandler
 
 type LambdaHandler struct {
-	Handler    interface{}
+	Handler    any
 	Method     string
 	Path       string
 	PathParams []string
@@ -27,7 +27,7 @@ type LambdaHandler struct {
 
 // NewHTTPHandler creates a new HTTP server that listens on the given port.
 func NewHTTPHandler(lambdaEndpoints LambdaHandlerEndpoints, portNumber int) {
-	fmt.Printf("\n%s %d\n\n", WELCOME_MESSAGE, portNumber)
+	fmt.Printf("\n%s %d\n\n", WelcomeMessage, portNumber)
 	r := chi.NewRouter()
 	for _, l := range lambdaEndpoints {
 		r.MethodFunc(l.Method, l.Path, LambdaAdapter(l))
@@ -41,28 +41,30 @@ func NewHTTPHandler(lambdaEndpoints LambdaHandlerEndpoints, portNumber int) {
 func LambdaAdapter(l LambdaHandler) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch eventHandler := l.Handler.(type) {
-		// APIGatewayProxyHandler
-		case func(context.Context, events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error):
+		case func(ctx *APIGatewayProxyContext) error:
 			fmt.Printf("%s %s: %+v \n", r.Method, r.URL.Path, l.PathParams)
-			request := NewAPIGatewayRequestBuilder(r, l.PathParams)
-			resp, eErr := eventHandler(context.Background(), request.Request())
-			if eErr != nil {
-				fmt.Printf("%s %s\n", UNHANDLED_ERR_MESSAGE, eErr.Error())
-				resp, eErr = unhandledError(eErr)
-				if eErr != nil {
-					panic(eErr)
+			ctx := &APIGatewayProxyContext{
+				Request: NewAPIGatewayRequestBuilder(r, l.PathParams).Request(),
+			}
+
+			if eErr := eventHandler(ctx); eErr != nil {
+				fmt.Printf("%s %s\n", UnhandledErrMessage, eErr.Error())
+				resp, uErr := unhandledError(eErr)
+				if uErr != nil {
+					panic(uErr)
 				}
+				ctx.Response = resp
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			for k, v := range resp.Headers {
+			for k, v := range ctx.Response.Headers {
 				w.Header().Set(k, v)
 			}
-			for k, v := range resp.MultiValueHeaders {
+			for k, v := range ctx.Response.MultiValueHeaders {
 				w.Header().Set(k, strings.Join(v, ","))
 			}
-			w.WriteHeader(resp.StatusCode)
-			if _, wErr := w.Write([]byte(resp.Body)); wErr != nil {
+			w.WriteHeader(ctx.Response.StatusCode)
+			if _, wErr := w.Write([]byte(ctx.Response.Body)); wErr != nil {
 				panic(wErr)
 			}
 		default:
@@ -142,7 +144,7 @@ func NewAPIGatewayRequestBuilder(request *http.Request, pathParams []string) *AP
 }
 
 // unhandledError returns an APIGatewayProxyResponse with the given error.
-func unhandledError(err error) (*events.APIGatewayProxyResponse, error) {
+func unhandledError(err error) (events.APIGatewayProxyResponse, error) {
 	var newErr Err
 	switch err := err.(type) {
 	case Err:
@@ -151,12 +153,12 @@ func unhandledError(err error) (*events.APIGatewayProxyResponse, error) {
 		newErr = ErrInternalServer
 	}
 
+	var r events.APIGatewayProxyResponse
 	b, err := json.Marshal(newErr)
 	if err != nil {
-		return nil, err
+		return r, err
 	}
 
-	r := new(events.APIGatewayProxyResponse)
 	r.Headers = make(map[string]string)
 	r.Headers["Content-Type"] = "application/json"
 	r.StatusCode = newErr.Status

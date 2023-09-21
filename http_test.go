@@ -23,13 +23,12 @@ func TestLambdaAdapter(t *testing.T) {
 			}
 			return nil
 		},
-		Method:     http.MethodGet,
-		Path:       "/test/url/path/{var1}/{var2}",
-		PathParams: []string{"var1", "var2"},
+		Method:      http.MethodGet,
+		PathPattern: "/test/url/path/{var1}/{var2}",
 	}
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/test/url/path/var1/var2", nil)
+	r := httptest.NewRequest(http.MethodGet, "/test/url/path/value1/value2", nil)
 	r.Header.Set("Content-Type", "text/plain")
 	g8.LambdaAdapter(l)(w, r)
 
@@ -49,13 +48,12 @@ func TestLambdaAdapter_without_content_type(t *testing.T) {
 			}
 			return nil
 		},
-		Method:     http.MethodGet,
-		Path:       "/test/url/path/{var1}/{var2}",
-		PathParams: []string{"var1", "var2"},
+		Method:      http.MethodGet,
+		PathPattern: "/test/url/path/{var1}/{var2}",
 	}
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/test/url/path/var1/var2", nil)
+	r := httptest.NewRequest(http.MethodGet, "/test/url/path/value1/value2", nil)
 	g8.LambdaAdapter(l)(w, r)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -69,8 +67,8 @@ func TestLambdaAdapter_g8_error(t *testing.T) {
 		Handler: func(ctx *g8.APIGatewayProxyContext) error {
 			return g8.ErrInternalServer
 		},
-		Method: http.MethodGet,
-		Path:   "/test/url/path",
+		Method:      http.MethodGet,
+		PathPattern: "/test/url/path",
 	}
 
 	w := httptest.NewRecorder()
@@ -88,8 +86,8 @@ func TestLambdaAdapter_generic_error(t *testing.T) {
 		Handler: func(ctx *g8.APIGatewayProxyContext) error {
 			return fmt.Errorf("generic error")
 		},
-		Method: http.MethodGet,
-		Path:   "/test/url/path",
+		Method:      http.MethodGet,
+		PathPattern: "/test/url/path",
 	}
 
 	w := httptest.NewRecorder()

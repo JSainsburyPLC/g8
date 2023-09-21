@@ -3,7 +3,7 @@ package g8_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -30,7 +30,7 @@ func TestSQSHandler_SingleMessage(t *testing.T) {
 	}
 
 	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
-		Logger: zerolog.New(ioutil.Discard),
+		Logger: zerolog.New(io.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
 		{
@@ -67,7 +67,7 @@ func TestSQSHandler_MultipleMessages(t *testing.T) {
 	}
 
 	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
-		Logger: zerolog.New(ioutil.Discard),
+		Logger: zerolog.New(io.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
 		{
@@ -113,7 +113,7 @@ func TestSQSHandler_EnvelopeNoCorrelationID(t *testing.T) {
 	}
 
 	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
-		Logger: zerolog.New(ioutil.Discard),
+		Logger: zerolog.New(io.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
 		{
@@ -148,7 +148,7 @@ func TestSQSHandler_NoEnvelope(t *testing.T) {
 	}
 
 	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
-		Logger: zerolog.New(ioutil.Discard),
+		Logger: zerolog.New(io.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
 		{
@@ -174,7 +174,7 @@ func TestSQSHandler_InvalidJSON(t *testing.T) {
 	}
 
 	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
-		Logger: zerolog.New(ioutil.Discard),
+		Logger: zerolog.New(io.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
 		{
@@ -195,7 +195,7 @@ func TestSQSHandler_HandlerError(t *testing.T) {
 	}
 
 	h := g8.SQSHandler(handlerFunc, g8.HandlerConfig{
-		Logger: zerolog.New(ioutil.Discard),
+		Logger: zerolog.New(io.Discard),
 	})
 	err := h(context.Background(), events.SQSEvent{Records: []events.SQSMessage{
 		{

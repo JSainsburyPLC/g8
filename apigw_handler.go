@@ -30,8 +30,8 @@ type APIGatewayProxyHandlerFunc func(c *APIGatewayProxyContext) error
 func APIGatewayProxyHandler(
 	h APIGatewayProxyHandlerFunc,
 	conf HandlerConfig,
-) func(context.Context, events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return func(ctx context.Context, r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+) func(context.Context, events.APIGatewayProxyRequest) (any, error) {
+	return func(ctx context.Context, r events.APIGatewayProxyRequest) (any, error) {
 		correlationID := getCorrelationIDAPIGW(r.Headers)
 
 		logger := configureLogger(conf).

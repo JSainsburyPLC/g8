@@ -3,9 +3,10 @@ package g8
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
+
+	adapter "github.com/jfallis/lambda-proxy-http-adapter"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/go-chi/chi/v5"
@@ -19,10 +20,9 @@ const (
 type LambdaHandlerEndpoints []LambdaHandler
 
 type LambdaHandler struct {
-	Handler    any
-	Method     string
-	Path       string
-	PathParams []string
+	Handler     any
+	Method      string
+	PathPattern string
 }
 
 // NewHTTPHandler creates a new HTTP server that listens on the given port.
@@ -30,7 +30,7 @@ func NewHTTPHandler(lambdaEndpoints LambdaHandlerEndpoints, portNumber int) {
 	fmt.Printf("\n%s %d\n\n", WelcomeMessage, portNumber)
 	r := chi.NewRouter()
 	for _, l := range lambdaEndpoints {
-		r.MethodFunc(l.Method, l.Path, LambdaAdapter(l))
+		r.MethodFunc(l.Method, l.PathPattern, LambdaAdapter(l))
 	}
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", portNumber), r); err != nil {
 		panic(err)
@@ -42,9 +42,9 @@ func LambdaAdapter(l LambdaHandler) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch eventHandler := l.Handler.(type) {
 		case func(ctx *APIGatewayProxyContext) error:
-			fmt.Printf("%s %s: %+v \n", r.Method, r.URL.Path, l.PathParams)
+			fmt.Printf("%s %s \n", r.Method, r.URL.Path)
 			ctx := &APIGatewayProxyContext{
-				Request: NewAPIGatewayRequestBuilder(r, l.PathParams).Request(),
+				Request: adapter.APIGatewayProxyRequestAdaptor(r, "", l.PathPattern, nil, nil),
 			}
 
 			if eErr := eventHandler(ctx); eErr != nil {
@@ -70,76 +70,6 @@ func LambdaAdapter(l LambdaHandler) func(http.ResponseWriter, *http.Request) {
 		default:
 			panic(fmt.Sprintf("unknown type: %T", l.Handler))
 		}
-	}
-}
-
-// APIGatewayRequestBuilder is a builder for APIGatewayProxyRequest.
-type APIGatewayRequestBuilder struct {
-	pathParams []string
-	request    *http.Request
-}
-
-// Headers returns the headers of the request.
-func (b *APIGatewayRequestBuilder) Headers() map[string]string {
-	headers := make(map[string]string, len(b.request.Header))
-	for k, v := range b.request.Header {
-		headers[k] = strings.Join(v, ",")
-	}
-
-	return headers
-}
-
-// QueryStrings returns the query strings of the request.
-func (b *APIGatewayRequestBuilder) QueryStrings() (map[string]string, map[string][]string) {
-	query := b.request.URL.Query()
-	queryParams := make(map[string]string, len(query))
-	MultiQueryParams := make(map[string][]string, len(query))
-	for k, v := range query {
-		queryParams[k] = strings.Join(v, ",")
-		MultiQueryParams[k] = v
-	}
-
-	return queryParams, MultiQueryParams
-}
-
-// PathParams returns the path parameters of the request.
-func (b *APIGatewayRequestBuilder) PathParams() map[string]string {
-	pathParams := make(map[string]string, len(b.pathParams))
-	for _, v := range b.pathParams {
-		pathParams[v] = chi.URLParam(b.request, v)
-	}
-
-	return pathParams
-}
-
-// Body returns the body of the request.
-func (b *APIGatewayRequestBuilder) Body() string {
-	if body, err := io.ReadAll(b.request.Body); err == nil {
-		return string(body)
-	}
-	return ""
-}
-
-// Request returns the APIGatewayProxyRequest.
-func (b *APIGatewayRequestBuilder) Request() events.APIGatewayProxyRequest {
-	query, multiQuery := b.QueryStrings()
-	return events.APIGatewayProxyRequest{
-		Path:                            b.request.URL.Path,
-		HTTPMethod:                      b.request.Method,
-		Headers:                         b.Headers(),
-		MultiValueHeaders:               b.request.Header,
-		QueryStringParameters:           query,
-		MultiValueQueryStringParameters: multiQuery,
-		PathParameters:                  b.PathParams(),
-		Body:                            b.Body(),
-	}
-}
-
-// NewAPIGatewayRequestBuilder creates a new APIGatewayRequestBuilder.
-func NewAPIGatewayRequestBuilder(request *http.Request, pathParams []string) *APIGatewayRequestBuilder {
-	return &APIGatewayRequestBuilder{
-		request:    request,
-		pathParams: pathParams,
 	}
 }
 

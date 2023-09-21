@@ -3,7 +3,7 @@ package g8_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -22,7 +22,7 @@ func TestS3Handler_SingleMessage(t *testing.T) {
 		assert.NotEmpty(t, c.CorrelationID)
 
 		return nil
-	}, g8.HandlerConfig{Logger: zerolog.New(ioutil.Discard)})
+	}, g8.HandlerConfig{Logger: zerolog.New(io.Discard)})
 
 	err := h(context.Background(), events.S3Event{
 		Records: []events.S3EventRecord{
@@ -48,7 +48,7 @@ func TestS3Handler_MultipleMessages(t *testing.T) {
 		assert.NotEmpty(t, c.CorrelationID)
 
 		return nil
-	}, g8.HandlerConfig{Logger: zerolog.New(ioutil.Discard)})
+	}, g8.HandlerConfig{Logger: zerolog.New(io.Discard)})
 
 	err := h(context.Background(), events.S3Event{
 		Records: []events.S3EventRecord{
@@ -80,7 +80,7 @@ func TestS3Handler_HandlerError(t *testing.T) {
 	}
 
 	h := g8.S3Handler(handlerFunc, g8.HandlerConfig{
-		Logger: zerolog.New(ioutil.Discard),
+		Logger: zerolog.New(io.Discard),
 	})
 	err := h(context.Background(), events.S3Event{
 		Records: []events.S3EventRecord{

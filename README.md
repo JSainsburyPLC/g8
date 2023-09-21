@@ -69,24 +69,22 @@ You are able to define handlers for [Lambda Authorizer](https://docs.aws.amazon.
 (previously known as custom authorizers) using g8. Here is an example:
 
 ```go
-    
-    handler := g8.APIGatewayCustomAuthorizerHandlerWithNewRelic(
-        func(c *APIGatewayCustomAuthorizerContext) error{
-            c.Response.SetPrincipalID("some-principal-ID")
+handler := g8.APIGatewayCustomAuthorizerHandlerWithNewRelic(
+    func(c *APIGatewayCustomAuthorizerContext) error{
+        c.Response.SetPrincipalID("some-principal-ID")
 
-            c.Response.AllowAllMethods()
-            // other examples:
-            // c.Response.DenyAllMethods()
-            // c.Response.AllowMethod(Post, "/pets/*")
-            return nil
-        },
-        g8.HandlerConfig{
-            ...
-        },
-    )
+        c.Response.AllowAllMethods()
+        // other examples:
+        // c.Response.DenyAllMethods()
+        // c.Response.AllowMethod(Post, "/pets/*")
+        return nil
+    },
+    g8.HandlerConfig{
+        ...
+    },
+)
 
-    lambda.StartHandler(handler)
-
+lambda.StartHandler(handler)
 ```
 
 ## Response writing
@@ -95,8 +93,8 @@ There are several methods provided to simplify writing HTTP responses.
 
 ```go
 handler := func(c *g8.APIGatewayProxyContext) error {
-	...
-	c.JSON(http.StatusOK, responseBody)
+    ...
+    c.JSON(http.StatusOK, responseBody)
 }
 ```
 
@@ -119,12 +117,12 @@ You can return custom `g8` errors and also map them to HTTP status codes
 
 ```go
 handler := func(c *g8.APIGatewayProxyContext) error {
-	...
-	return g8.Err{
-		Status: http.StatusBadRequest,
-		Code:   "SOME_CLIENT_ERROR",
-		Detail: "Invalid param",
-	}
+    ...
+    return g8.Err{
+        Status: http.StatusBadRequest,
+        Code:   "SOME_CLIENT_ERROR",
+        Detail: "Invalid param",
+    }
 }
 ```
 
@@ -132,8 +130,8 @@ Writes the following response, with status code 400
 
 ```json
 {
-  "code": "SOME_CLIENT_ERROR",
-  "detail": "Invalid param"
+    "code": "SOME_CLIENT_ERROR",
+    "detail": "Invalid param"
 }
 ```
 
@@ -147,26 +145,31 @@ The new version of eris handles errors differently and produce a different JSON 
 eris.Wrapf(err, "failed to send offers to user id: %v", userID)
 ```
 
-### Pact HTTP provider testing
+### HTTP Adaptor
 
-The `NewHTTPHandler` function can be used to create adaptors for `g8.APIGatewayProxyHandler` lambdas and serve HTTP for pact provider testing to aid engineers and verify that an API provider adheres to a number of pacts authored by its clients.
+In order to facilitate the serving of HTTP and the development of `g8.APIGatewayProxyHandler` lambdas, engineers can utilise the `NewHTTPHandler` function. 
+This function is particularly beneficial for local development and pact provider testing, as it assists in verifying that an API provider is adhering to the pacts established by its clients. 
+By using this feature, engineers can ensure that their API is functioning correctly and meeting the necessary expectations of its users.
 
 #### Example
 ```go
-	g8.NewHTTPHandler(LambdaHandlerEndpoints{
-		g8.LambdaHandler{
-			Handler:    pact.ExampleGetStub,
-			Method:     http.MethodGet,
-			Path:       "/full/url/path/{var1}/{var2}",
-			PathParams: []string{"var1", "var2"},
-		},
-		g8.LambdaHandler{
-			Handler:    pact.ExamplePostStub,
-			Method:     http.MethodPost,
-			Path:       "/another/full/url/path/{var1}",
-			PathParams: []string{"var1"},
-		},
-	}, 8080)
+g8.NewHTTPHandler(LambdaHandlerEndpoints{
+    g8.LambdaHandler{
+        Handler:     func(c *g8.APIGatewayProxyContext) error {
+            c.JSON(http.StatusOK, "success")
+            return nil
+        },
+        Method:      http.MethodGet,
+        PathPattern: "/full/url/path/{var1}/{var2}",
+    },
+    g8.LambdaHandler{
+        Handler:     func(c *g8.APIGatewayProxyContext) error {
+            return errors.New("some error")
+        },
+        Method:      http.MethodPost,
+        PathPattern: "/another/full/url/path/{var1}",
+    },
+}, 8080)
 ```
 
 ### Requirements

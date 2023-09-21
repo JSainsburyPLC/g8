@@ -2,7 +2,7 @@ package g8_test
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -22,7 +22,7 @@ func TestCloudWatchHandler_SingleMessage(t *testing.T) {
 		assert.NotEmpty(t, c.CorrelationID)
 
 		return "finished", nil
-	}, g8.HandlerConfig{Logger: zerolog.New(ioutil.Discard)})
+	}, g8.HandlerConfig{Logger: zerolog.New(io.Discard)})
 
 	result, err := h(context.Background(), events.CloudWatchEvent{
 		Resources: []string{resourceArn},
@@ -41,7 +41,7 @@ func TestCloudWatchHandler_HandlerError(t *testing.T) {
 	}
 
 	h := g8.CloudWatchHandler(handlerFunc, g8.HandlerConfig{
-		Logger: zerolog.New(ioutil.Discard),
+		Logger: zerolog.New(io.Discard),
 	})
 	_, err := h(context.Background(), events.CloudWatchEvent{})
 

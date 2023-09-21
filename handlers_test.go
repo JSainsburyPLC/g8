@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	adapter "github.com/gaw508/lambda-proxy-http-adapter"
+	adapter "github.com/jfallis/lambda-proxy-http-adapter"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
 	"github.com/steinfletcher/apitest"
@@ -39,7 +39,7 @@ func TestAPIGatewayProxyHandler_UnhandledErrorResponseWithStackTrace(t *testing.
 	})
 
 	apitest.New().
-		Handler(adapter.GetHttpHandlerWithContext(lh, "/", nil)).
+		Handler(adapter.GetHTTPHandlerWithContext(lh, "/", nil, nil)).
 		Get("/").
 		Expect(t).
 		Status(http.StatusInternalServerError).
@@ -136,7 +136,7 @@ func TestAPIGatewayProxyHandler_UnhandledErrorsResponseWithStackTrace(t *testing
 			})
 
 			apitest.New().
-				Handler(adapter.GetHttpHandlerWithContext(lh, "/", nil)).
+				Handler(adapter.GetHTTPHandlerWithContext(lh, "/", nil, nil)).
 				Get("/").
 				Expect(t).
 				Status(http.StatusInternalServerError).

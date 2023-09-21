@@ -12,7 +12,7 @@ import (
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/aws/aws-lambda-go/events"
-	adapter "github.com/gaw508/lambda-proxy-http-adapter"
+	adapter "github.com/jfallis/lambda-proxy-http-adapter"
 	"github.com/rs/zerolog"
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/assert"
@@ -148,7 +148,7 @@ func TestAPIGatewayProxyHandler_SuccessResponse(t *testing.T) {
 	})
 
 	apitest.New().
-		Handler(adapter.GetHttpHandlerWithContext(lh, "/", nil)).
+		Handler(adapter.GetHTTPHandlerWithContext(lh, "/", nil, nil)).
 		Post("/").
 		JSON(`{
 					"name": "one",
@@ -178,7 +178,7 @@ func TestAPIGatewayProxyHandler_G8ErrorResponse(t *testing.T) {
 	lh := g8.APIGatewayProxyHandler(h, g8.HandlerConfig{})
 
 	apitest.New().
-		Handler(adapter.GetHttpHandlerWithContext(lh, "/", nil)).
+		Handler(adapter.GetHTTPHandlerWithContext(lh, "/", nil, nil)).
 		Get("/").
 		Expect(t).
 		Status(http.StatusUnauthorized).
@@ -201,7 +201,7 @@ func TestAPIGatewayProxyHandler_UnhandledErrorResponse(t *testing.T) {
 	})
 
 	apitest.New().
-		Handler(adapter.GetHttpHandlerWithContext(lh, "/", nil)).
+		Handler(adapter.GetHTTPHandlerWithContext(lh, "/", nil, nil)).
 		Get("/").
 		Expect(t).
 		Status(http.StatusInternalServerError).
@@ -232,7 +232,7 @@ func TestAPIGatewayProxyHandler_GetCookie(t *testing.T) {
 	})
 
 	apitest.New().
-		Handler(adapter.GetHttpHandlerWithContext(lh, "/", nil)).
+		Handler(adapter.GetHTTPHandlerWithContext(lh, "/", nil, nil)).
 		Get("/").
 		Cookie("otherCookie", "otherCookieValue").
 		Cookie("cookieName", "cookieValue").

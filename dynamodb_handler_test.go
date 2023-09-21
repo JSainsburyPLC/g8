@@ -3,7 +3,7 @@ package g8_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -23,7 +23,7 @@ func TestDynamoDbHandler_SingleMessage(t *testing.T) {
 		assert.NotEmpty(t, c.CorrelationID)
 
 		return nil
-	}, g8.HandlerConfig{Logger: zerolog.New(ioutil.Discard)})
+	}, g8.HandlerConfig{Logger: zerolog.New(io.Discard)})
 
 	err := h(context.Background(), events.DynamoDBEvent{
 		Records: []events.DynamoDBEventRecord{
@@ -48,7 +48,7 @@ func TestDynamoDbHandler_MultipleMessages(t *testing.T) {
 		assert.IsType(t, events.DynamoDBStreamRecord{}, c.EventRecord.Change)
 
 		return nil
-	}, g8.HandlerConfig{Logger: zerolog.New(ioutil.Discard)})
+	}, g8.HandlerConfig{Logger: zerolog.New(io.Discard)})
 
 	err := h(context.Background(), events.DynamoDBEvent{
 		Records: []events.DynamoDBEventRecord{
@@ -75,7 +75,7 @@ func TestDynamoDbHandler_HandlerError(t *testing.T) {
 	}
 
 	h := g8.DynamoDbHandler(handlerFunc, g8.HandlerConfig{
-		Logger: zerolog.New(ioutil.Discard),
+		Logger: zerolog.New(io.Discard),
 	})
 	err := h(context.Background(), events.DynamoDBEvent{
 		Records: []events.DynamoDBEventRecord{

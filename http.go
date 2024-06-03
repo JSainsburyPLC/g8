@@ -3,6 +3,7 @@ package g8
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -43,8 +44,14 @@ func LambdaAdapter(l LambdaHandler) func(http.ResponseWriter, *http.Request) {
 		switch eventHandler := l.Handler.(type) {
 		case func(ctx *APIGatewayProxyContext) error:
 			fmt.Printf("%s %s \n", r.Method, r.URL.Path)
+
+			buf := new(strings.Builder)
+			if _, err := io.Copy(buf, r.Body); err != nil {
+				panic(err)
+			}
+
 			ctx := &APIGatewayProxyContext{
-				Request: adapter.APIGatewayProxyRequestAdaptor(r, "", l.PathPattern, nil, nil),
+				Request: adapter.APIGatewayProxyRequestAdaptor(r, buf.String(), l.PathPattern, nil, nil),
 			}
 
 			if eErr := eventHandler(ctx); eErr != nil {

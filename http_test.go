@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -12,7 +13,7 @@ import (
 	"github.com/JSainsburyPLC/g8"
 )
 
-func TestLambdaAdapter(t *testing.T) {
+func TestLambdaAdapterGetMethod(t *testing.T) {
 	l := g8.LambdaHandler{
 		Handler: func(ctx *g8.APIGatewayProxyContext) error {
 			ctx.Response = events.APIGatewayProxyResponse{
@@ -29,6 +30,34 @@ func TestLambdaAdapter(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/test/url/path/value1/value2", nil)
+	r.Header.Set("Content-Type", "text/plain")
+	g8.LambdaAdapter(l)(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
+	assert.Equal(t, "cookie1,cookie2", w.Header().Get("Set-Cookie"))
+	assert.Equal(t, "success", w.Body.String())
+}
+
+func TestLambdaAdapterPostMethod(t *testing.T) {
+	l := g8.LambdaHandler{
+		Handler: func(ctx *g8.APIGatewayProxyContext) error {
+			ctx.Response = events.APIGatewayProxyResponse{
+				StatusCode:        http.StatusOK,
+				Headers:           map[string]string{"Content-Type": "text/plain"},
+				MultiValueHeaders: map[string][]string{"Set-Cookie": {"cookie1", "cookie2"}},
+				Body:              "success",
+			}
+			return nil
+		},
+		Method:      http.MethodPost,
+		PathPattern: "/test/url/path/{var1}/{var2}",
+	}
+
+	reqBody := strings.NewReader(`{"key":"value"}`)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/test/url/path/value1/value2", reqBody)
 	r.Header.Set("Content-Type", "text/plain")
 	g8.LambdaAdapter(l)(w, r)
 

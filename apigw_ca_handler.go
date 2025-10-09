@@ -3,35 +3,41 @@ package g8
 import (
 	"context"
 	"errors"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
 )
 
-// APIGatewayCustomAuthorizerContext the context for a request for Custom Authorizer
+// APIGatewayCustomAuthorizerContext is the context for API Gateway Custom Authorizer.
 type APIGatewayCustomAuthorizerContext struct {
 	Context                    context.Context
 	Request                    events.APIGatewayCustomAuthorizerRequestTypeRequest
 	Response                   events.APIGatewayCustomAuthorizerResponse
 	Logger                     zerolog.Logger
-	NewRelicTx                 newrelic.Transaction
+	NewRelicTx                 *newrelic.Transaction
 	CorrelationID              string
 	methodArnParts             methodARN
 	hasAtLeastOneAllowedMethod bool
 }
 
-// APIGatewayCustomAuthorizerHandlerFunc to populate
+// APIGatewayCustomAuthorizerHandlerFunc is the user-defined function signature for API Gateway Custom Authorizer.
 type APIGatewayCustomAuthorizerHandlerFunc func(c *APIGatewayCustomAuthorizerContext) error
 
-// APIGatewayCustomAuthorizerHandler fd
+// APIGatewayCustomAuthorizerHandler is the main handler for API Gateway Custom Authorizer.
 func APIGatewayCustomAuthorizerHandler(
 	h APIGatewayCustomAuthorizerHandlerFunc,
 	conf HandlerConfig,
-) func(context.Context, events.APIGatewayCustomAuthorizerRequestTypeRequest) (events.APIGatewayCustomAuthorizerResponse, error) {
-
-	return func(ctx context.Context, r events.APIGatewayCustomAuthorizerRequestTypeRequest) (events.APIGatewayCustomAuthorizerResponse, error) {
+) func(
+	context.Context,
+	events.APIGatewayCustomAuthorizerRequestTypeRequest,
+) (events.APIGatewayCustomAuthorizerResponse, error) {
+	return func(
+		ctx context.Context,
+		r events.APIGatewayCustomAuthorizerRequestTypeRequest,
+	) (events.APIGatewayCustomAuthorizerResponse, error) {
 		if len(r.MethodArn) == 0 {
 			return events.APIGatewayCustomAuthorizerResponse{}, errors.New("MethodArn is not set")
 		}
@@ -72,7 +78,7 @@ func APIGatewayCustomAuthorizerHandler(
 			logger.Warn().Msg("Warning! The PrincipalID was not defined! Please set it using c.Response.SetPrincipalID() function")
 		}
 
-		c.Response.Context = map[string]interface{}{
+		c.Response.Context = map[string]any{
 			"customer-id": c.Response.PrincipalID,
 		}
 
@@ -90,19 +96,23 @@ func APIGatewayCustomAuthorizerHandler(
 	}
 }
 
-func APIGatewayCustomAuthorizerHandlerWithNewRelic(h APIGatewayCustomAuthorizerHandlerFunc, conf HandlerConfig) lambda.Handler {
+// APIGatewayCustomAuthorizerHandlerWithNewRelic wraps the handler with New Relic monitoring.
+func APIGatewayCustomAuthorizerHandlerWithNewRelic(
+	h APIGatewayCustomAuthorizerHandlerFunc,
+	conf HandlerConfig,
+) lambda.Handler {
 	return nrlambda.Wrap(APIGatewayCustomAuthorizerHandler(h, conf), conf.NewRelicApp)
 }
 
-func (c *APIGatewayCustomAuthorizerContext) AddNewRelicAttribute(key string, val interface{}) {
+// AddNewRelicAttribute adds a custom attribute to the New Relic transaction.
+func (c *APIGatewayCustomAuthorizerContext) AddNewRelicAttribute(key string, val any) {
 	if c.NewRelicTx == nil {
 		return
 	}
-	if err := c.NewRelicTx.AddAttribute(key, val); err != nil {
-		c.Logger.Error().Msgf("failed to add attr '%s' to new relic tx: %+v", key, err)
-	}
+	c.NewRelicTx.AddAttribute(key, val)
 }
 
+// NewAuthorizerResponse creates a new APIGatewayCustomAuthorizerResponse with an empty policy document.
 func NewAuthorizerResponse() events.APIGatewayCustomAuthorizerResponse {
 	return events.APIGatewayCustomAuthorizerResponse{
 		PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
@@ -121,24 +131,29 @@ func (c *APIGatewayCustomAuthorizerContext) addMethod(effect Effect, verb, resou
 	c.Response.PolicyDocument.Statement = append(c.Response.PolicyDocument.Statement, s)
 }
 
+// SetPrincipalID sets the PrincipalID in the authorizer response.
 func (c *APIGatewayCustomAuthorizerContext) SetPrincipalID(principalID string) {
 	c.Response.PrincipalID = principalID
 }
 
+// AllowAllMethods allows all methods in the policy.
 func (c *APIGatewayCustomAuthorizerContext) AllowAllMethods() {
 	c.hasAtLeastOneAllowedMethod = true
 	c.addMethod(Allow, All, "*")
 }
 
+// DenyAllMethods denies all methods in the policy.
 func (c *APIGatewayCustomAuthorizerContext) DenyAllMethods() {
 	c.addMethod(Deny, All, "*")
 }
 
+// AllowMethod allows a specific method in the policy.
 func (c *APIGatewayCustomAuthorizerContext) AllowMethod(verb, resource string) {
 	c.hasAtLeastOneAllowedMethod = true
 	c.addMethod(Allow, verb, resource)
 }
 
+// DenyMethod denies a specific method in the policy.
 func (c *APIGatewayCustomAuthorizerContext) DenyMethod(verb, resource string) {
 	c.addMethod(Deny, verb, resource)
 }

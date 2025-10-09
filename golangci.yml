@@ -1,0 +1,145 @@
+version: "2"
+
+linters:
+  enable:
+    - contextcheck
+    - cyclop
+    - dogsled
+    - dupl
+    - errcheck
+    - errorlint
+    - forbidigo
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - gosec
+    - govet
+    - importas
+    - ineffassign
+    - lll
+    - misspell
+    - mnd
+    - nakedret
+    - nestif
+    - nolintlint
+    - paralleltest
+    - prealloc
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - tagalign
+    - tagliatelle
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    - unparam
+    - unused
+    - varnamelen
+    - wrapcheck
+  disable:
+    - bidichk
+    - bodyclose
+    - embeddedstructfieldcheck
+    - iface
+    - interfacebloat
+    - intrange
+    - ireturn
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
+    - perfsprint
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - recvcheck
+    - sloglint
+    - spancheck
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
+    - wsl
+    - wsl_v5
+    - zerologlint
+
+linters-settings:
+  funlen:
+    lines: 60
+    statements: 40
+  gocyclo:
+    min-complexity: 10
+  gocognit:
+    min-complexity: 10
+  revive:
+    ignore-generated-header: true
+    severity: warning
+    rules:
+      - name: var-naming
+      - name: function-length
+      - name: error-naming
+      - name: error-return
+      - name: package-comments
+      - name: if-return
+      - name: indent-error-flow
+      - name: range-loop
+      - name: context-as-argument
+      - name: unexported-return
+      - name: exported
+      - name: blank-imports
+      - name: import-shadowing
+      - name: time-naming
+      - name: receiver-naming
+      - name: doc-comments
+  lll:
+    line-length: 80
+    tab-width: 8
+    exclude-patterns:
+      - "^//go:generate "
+  prealloc:
+    simple: true
+    range-loops: true
+  varnamelen:
+    min-length: 2
+    max-length: 30
+    allow-short: true
+  errorlint:
+    errorf: true
+    wrap: true
+
+exclusions:
+  generated: strict
+  warn-unused: true
+  presets:
+    - comments
+    - std-error-handling
+    - common-false-positives
+    - legacy
+  rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+    - path-except: _test\.go
+      linters:
+        - forbidigo
+    - path: internal/hmac/
+      text: "weak cryptographic primitive"
+      linters:
+        - gosec
+    - linters:
+        - staticcheck
+      text: "SA9003:"
+    - linters:
+        - lll
+      source: "^//go:generate "

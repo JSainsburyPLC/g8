@@ -2,23 +2,27 @@ package g8
 
 import (
 	"context"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/uuid"
-	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
 )
 
+// StepEvent represents a generic event for AWS Step Functions.
 type StepContext struct {
 	Context       context.Context
 	Event         StepEvent
 	Logger        zerolog.Logger
-	NewRelicTx    newrelic.Transaction
+	NewRelicTx    *newrelic.Transaction
 	CorrelationID string
 }
 
+// StepEvent represents a generic event for AWS Step Functions.
 type StepHandlerFunc func(c *StepContext) (StepEvent, error)
 
+// StepHandler is the main handler for Step Function events.
 func StepHandler(h StepHandlerFunc, conf HandlerConfig) func(context.Context, StepEvent) (StepEvent, error) {
 	return func(ctx context.Context, e StepEvent) (StepEvent, error) {
 		correlationID := uuid.New().String()
@@ -51,15 +55,15 @@ func StepHandler(h StepHandlerFunc, conf HandlerConfig) func(context.Context, St
 	}
 }
 
+// StepHandlerWithNewRelic wraps the StepHandler with New Relic monitoring.
 func StepHandlerWithNewRelic(h StepHandlerFunc, conf HandlerConfig) lambda.Handler {
 	return nrlambda.Wrap(StepHandler(h, conf), conf.NewRelicApp)
 }
 
-func (c *StepContext) AddNewRelicAttribute(key string, val interface{}) {
+// AddNewRelicAttribute adds a custom attribute to the New Relic transaction if it exists.
+func (c *StepContext) AddNewRelicAttribute(key string, val any) {
 	if c.NewRelicTx == nil {
 		return
 	}
-	if err := c.NewRelicTx.AddAttribute(key, val); err != nil {
-		c.Logger.Error().Msgf("failed to add attr '%s' to new relic tx: %+v", key, err)
-	}
+	c.NewRelicTx.AddAttribute(key, val)
 }

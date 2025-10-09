@@ -7,34 +7,39 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/uuid"
-	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
 )
 
+// SQSContext is the context passed to SQS event handlers.
 type SQSContext struct {
 	Context       context.Context
 	Message       events.SQSMessage
 	Logger        zerolog.Logger
-	NewRelicTx    newrelic.Transaction
+	NewRelicTx    *newrelic.Transaction
 	CorrelationID string
 }
 
+// SQSHandlerFunc is the user-defined function signature for SQS event handlers.
 type SQSHandlerFunc func(c *SQSContext) error
 
+// SQSMessageEnvelope represents the expected structure of an SQS message with optional metadata.
 type SQSMessageEnvelope struct {
-	Data interface{}     `json:"data"`
+	Data any             `json:"data"`
 	Meta *SQSMessageMeta `json:"meta"`
 }
 
+// SQSMessageMeta holds optional metadata for an SQS message.
 type SQSMessageMeta struct {
 	CorrelationID string `json:"correlation_id"`
 }
 
+// SQSHandler is the main handler for SQS events.
 func SQSHandler(h SQSHandlerFunc, conf HandlerConfig) func(context.Context, events.SQSEvent) error {
 	return func(ctx context.Context, e events.SQSEvent) error {
 		for _, record := range e.Records {
-			// parse the envelope and get the meta data if available
+			// parse the envelope and get the metadata if available
 			// the body should then be updated with the inner message
 			// data for when the data is bound.
 			meta, dataBytes := parseRawMessage([]byte(record.Body))
@@ -71,20 +76,21 @@ func SQSHandler(h SQSHandlerFunc, conf HandlerConfig) func(context.Context, even
 	}
 }
 
+// SQSHandlerWithNewRelic wraps the SQS handler with New Relic monitoring.
 func SQSHandlerWithNewRelic(h SQSHandlerFunc, conf HandlerConfig) lambda.Handler {
 	return nrlambda.Wrap(SQSHandler(h, conf), conf.NewRelicApp)
 }
 
-func (c *SQSContext) AddNewRelicAttribute(key string, val interface{}) {
+// AddNewRelicAttribute adds a custom attribute to the New Relic transaction, if available.
+func (c *SQSContext) AddNewRelicAttribute(key string, val any) {
 	if c.NewRelicTx == nil {
 		return
 	}
-	if err := c.NewRelicTx.AddAttribute(key, val); err != nil {
-		c.Logger.Error().Msgf("failed to add attr '%s' to new relic tx: %+v", key, err)
-	}
+	c.NewRelicTx.AddAttribute(key, val)
 }
 
-func (c *SQSContext) Bind(v interface{}) error {
+// Bind unmarshals the SQS message body into the provided struct and validates it if it implements Validatable.
+func (c *SQSContext) Bind(v any) error {
 	if err := json.Unmarshal([]byte(c.Message.Body), v); err != nil {
 		return err
 	}

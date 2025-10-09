@@ -6,21 +6,24 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/uuid"
-	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
 )
 
+// DynamoDbContext is the context passed to DynamoDB stream handlers.
 type DynamoDbContext struct {
 	Context       context.Context
 	EventRecord   events.DynamoDBEventRecord
 	Logger        zerolog.Logger
-	NewRelicTx    newrelic.Transaction
+	NewRelicTx    *newrelic.Transaction
 	CorrelationID string
 }
 
+// DynamoHandlerFunc is the user-defined function signature for DynamoDB stream handlers.
 type DynamoHandlerFunc func(c *DynamoDbContext) error
 
+// DynamoDbHandler is the main handler for DynamoDB stream events.
 func DynamoDbHandler(h DynamoHandlerFunc, conf HandlerConfig) func(context.Context, events.DynamoDBEvent) error {
 	return func(ctx context.Context, e events.DynamoDBEvent) error {
 		for _, record := range e.Records {
@@ -53,15 +56,15 @@ func DynamoDbHandler(h DynamoHandlerFunc, conf HandlerConfig) func(context.Conte
 	}
 }
 
+// DynamoDbHandlerWithNewRelic wraps the DynamoDbHandler with New Relic monitoring.
 func DynamoDbHandlerWithNewRelic(h DynamoHandlerFunc, conf HandlerConfig) lambda.Handler {
 	return nrlambda.Wrap(DynamoDbHandler(h, conf), conf.NewRelicApp)
 }
 
-func (c *DynamoDbContext) AddNewRelicAttribute(key string, val interface{}) {
+// AddNewRelicAttribute adds a custom attribute to the New Relic transaction, if available.
+func (c *DynamoDbContext) AddNewRelicAttribute(key string, val any) {
 	if c.NewRelicTx == nil {
 		return
 	}
-	if err := c.NewRelicTx.AddAttribute(key, val); err != nil {
-		c.Logger.Error().Msgf("failed to add attr '%s' to new relic tx: %+v", key, err)
-	}
+	c.NewRelicTx.AddAttribute(key, val)
 }

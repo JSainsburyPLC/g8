@@ -11,22 +11,25 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/uuid"
-	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
 )
 
+// APIGatewayProxyContext is the context passed to API Gateway proxy handlers.
 type APIGatewayProxyContext struct {
 	Context       context.Context
 	Request       events.APIGatewayProxyRequest
 	Response      events.APIGatewayProxyResponse
 	Logger        zerolog.Logger
-	NewRelicTx    newrelic.Transaction
+	NewRelicTx    *newrelic.Transaction
 	CorrelationID string
 }
 
+// APIGatewayProxyHandlerFunc is the user-defined function signature for API Gateway proxy handlers.
 type APIGatewayProxyHandlerFunc func(c *APIGatewayProxyContext) error
 
+// APIGatewayProxyHandler is the main handler for API Gateway proxy.
 func APIGatewayProxyHandler(
 	h APIGatewayProxyHandlerFunc,
 	conf HandlerConfig,
@@ -68,11 +71,13 @@ func APIGatewayProxyHandler(
 	}
 }
 
+// APIGatewayProxyHandlerWithNewRelic wraps the API Gateway proxy handler with New Relic monitoring.
 func APIGatewayProxyHandlerWithNewRelic(h APIGatewayProxyHandlerFunc, conf HandlerConfig) lambda.Handler {
 	return nrlambda.Wrap(APIGatewayProxyHandler(h, conf), conf.NewRelicApp)
 }
 
-func (c *APIGatewayProxyContext) Bind(v interface{}) error {
+// Bind unmarshals the JSON body of the request into the provided struct and validates it if it implements Validatable.
+func (c *APIGatewayProxyContext) Bind(v any) error {
 	if err := json.Unmarshal([]byte(c.Request.Body), v); err != nil {
 		return ErrInvalidBody
 	}
@@ -87,7 +92,8 @@ func (c *APIGatewayProxyContext) Bind(v interface{}) error {
 	return nil
 }
 
-func (c *APIGatewayProxyContext) JSON(statusCode int, body interface{}) error {
+// JSON sets the response body to the JSON representation of the provided struct and sets the Content-Type header.
+func (c *APIGatewayProxyContext) JSON(statusCode int, body any) error {
 	var b []byte
 	var err error
 	if body != nil {
@@ -106,13 +112,12 @@ func (c *APIGatewayProxyContext) JSON(statusCode int, body interface{}) error {
 	return nil
 }
 
-func (c *APIGatewayProxyContext) AddNewRelicAttribute(key string, val interface{}) {
+// AddNewRelicAttribute adds a custom attribute to the New Relic transaction.
+func (c *APIGatewayProxyContext) AddNewRelicAttribute(key string, val any) {
 	if c.NewRelicTx == nil {
 		return
 	}
-	if err := c.NewRelicTx.AddAttribute(key, val); err != nil {
-		c.Logger.Error().Msgf("failed to add attr '%s' to new relic tx: %+v", key, err)
-	}
+	c.NewRelicTx.AddAttribute(key, val)
 }
 
 func (c *APIGatewayProxyContext) handleError(err error) {
@@ -127,7 +132,7 @@ func (c *APIGatewayProxyContext) handleError(err error) {
 	_ = c.JSON(newErr.Status, newErr)
 }
 
-// GetCookie retrieves the cookie with the given name
+// GetCookie retrieves the cookie with the given name.
 func (c *APIGatewayProxyContext) GetCookie(name string) (http.Cookie, bool) {
 	rawCookies := c.GetHeader("cookie")
 	if rawCookies == "" {
@@ -150,7 +155,7 @@ func (c *APIGatewayProxyContext) GetCookie(name string) (http.Cookie, bool) {
 }
 
 // GetHeader retrieves the header value by name. It canonicalizes headers to ensure that values can be accessed
-// in a case insensitive manner
+// in a case-insensitive manner.
 func (c *APIGatewayProxyContext) GetHeader(name string) string {
 	canonicalHeaders := http.Header{}
 	for k, v := range c.Request.MultiValueHeaders {

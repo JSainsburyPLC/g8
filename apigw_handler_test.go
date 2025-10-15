@@ -89,7 +89,7 @@ func TestAPIGatewayProxyContext_JSON(t *testing.T) {
 	testCases := map[string]struct {
 		c           *g8.APIGatewayProxyContext
 		statusCode  int
-		body        interface{}
+		body        any
 		expectedRes events.APIGatewayProxyResponse
 	}{
 		"no body": {
@@ -260,8 +260,8 @@ func containsLogMessage(fullLog string, message string) bool {
 	return false
 }
 
-func jsonPath(path string, jsonData []byte) interface{} {
-	v := interface{}(nil)
+func jsonPath(path string, jsonData []byte) any {
+	v := any(nil)
 	err := json.Unmarshal(jsonData, &v)
 	if err != nil {
 		panic(err)

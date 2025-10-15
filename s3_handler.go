@@ -6,21 +6,24 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/uuid"
-	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
 )
 
+// S3Context is the context passed to S3 event handlers.
 type S3Context struct {
 	Context       context.Context
 	EventRecord   events.S3EventRecord
 	Logger        zerolog.Logger
-	NewRelicTx    newrelic.Transaction
+	NewRelicTx    *newrelic.Transaction
 	CorrelationID string
 }
 
+// S3HandlerFunc is the user-defined function signature for S3 event handlers.
 type S3HandlerFunc func(c *S3Context) error
 
+// S3Handler is the main handler for S3 events.
 func S3Handler(h S3HandlerFunc, conf HandlerConfig) func(context.Context, events.S3Event) error {
 	return func(ctx context.Context, e events.S3Event) error {
 		for _, record := range e.Records {
@@ -53,15 +56,15 @@ func S3Handler(h S3HandlerFunc, conf HandlerConfig) func(context.Context, events
 	}
 }
 
+// S3HandlerWithNewRelic wraps the S3Handler with New Relic monitoring.
 func S3HandlerWithNewRelic(h S3HandlerFunc, conf HandlerConfig) lambda.Handler {
 	return nrlambda.Wrap(S3Handler(h, conf), conf.NewRelicApp)
 }
 
-func (c *S3Context) AddNewRelicAttribute(key string, val interface{}) {
+// AddNewRelicAttribute adds a custom attribute to the New Relic transaction, if available.
+func (c *S3Context) AddNewRelicAttribute(key string, val any) {
 	if c.NewRelicTx == nil {
 		return
 	}
-	if err := c.NewRelicTx.AddAttribute(key, val); err != nil {
-		c.Logger.Error().Msgf("failed to add attr '%s' to new relic tx: %+v", key, err)
-	}
+	c.NewRelicTx.AddAttribute(key, val)
 }

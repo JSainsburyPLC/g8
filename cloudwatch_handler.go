@@ -6,22 +6,28 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/uuid"
-	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/integrations/nrlambda"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
 )
 
+// CloudWatchContext is the context passed to CloudWatch event handlers.
 type CloudWatchContext struct {
 	Context       context.Context
 	Event         events.CloudWatchEvent
 	Logger        zerolog.Logger
-	NewRelicTx    newrelic.Transaction
+	NewRelicTx    *newrelic.Transaction
 	CorrelationID string
 }
 
+// CloudWatchHandlerFunc is the user-defined function signature for CloudWatch event handlers.
 type CloudWatchHandlerFunc func(c *CloudWatchContext) (LambdaResult, error)
 
-func CloudWatchHandler(h CloudWatchHandlerFunc, conf HandlerConfig) func(context.Context, events.CloudWatchEvent) (LambdaResult, error) {
+// CloudWatchHandler is the main handler for CloudWatch events.
+func CloudWatchHandler(
+	h CloudWatchHandlerFunc,
+	conf HandlerConfig,
+) func(context.Context, events.CloudWatchEvent) (LambdaResult, error) {
 	return func(ctx context.Context, event events.CloudWatchEvent) (LambdaResult, error) {
 		correlationID := uuid.New().String()
 
@@ -57,15 +63,15 @@ func CloudWatchHandler(h CloudWatchHandlerFunc, conf HandlerConfig) func(context
 	}
 }
 
+// CloudWatchHandlerWithNewRelic wraps the CloudWatch handler with New Relic monitoring.
 func CloudWatchHandlerWithNewRelic(h CloudWatchHandlerFunc, conf HandlerConfig) lambda.Handler {
 	return nrlambda.Wrap(CloudWatchHandler(h, conf), conf.NewRelicApp)
 }
 
-func (c *CloudWatchContext) AddNewRelicAttribute(key string, val interface{}) {
+// AddNewRelicAttribute adds a custom attribute to the New Relic transaction, if available.
+func (c *CloudWatchContext) AddNewRelicAttribute(key string, val any) {
 	if c.NewRelicTx == nil {
 		return
 	}
-	if err := c.NewRelicTx.AddAttribute(key, val); err != nil {
-		c.Logger.Error().Msgf("failed to add attr '%s' to new relic tx: %+v", key, err)
-	}
+	c.NewRelicTx.AddAttribute(key, val)
 }
